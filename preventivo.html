@@ -1,39 +1,203 @@
-<!-- Campo per la scelta del Tipo di Sito -->
-<fieldset class="form-fieldset">
-    <legend>Tipo di Sito <span class="required">*</span></legend>
-    <div class="form-grid radios">
-        <div class="radio-group">
-            <input type="radio" id="site-vetrina" name="site_type" value="Sito Web Vetrina" required aria-required="true">
-            <label for="site-vetrina">Sito Web Vetrina</label>
-        </div>
-        <div class="radio-group">
-            <input type="radio" id="site-ecommerce" name="site_type" value="E-commerce" required aria-required="true">
-            <label for="site-ecommerce">E-commerce</label>
-        </div>
-        <div class="radio-group">
-            <input type="radio" id="site-custom" name="site_type" value="Soluzione Personalizzata" required aria-required="true">
-            <label for="site-custom">Soluzione Personalizzata</label>
-        </div>
-        <div class="radio-group">
-            <input type="radio" id="site-restyling" name="site_type" value="Restyling Sito Esistente" required aria-required="true">
-            <label for="site-restyling">Restyling Sito Esistente</label>
-        </div>
-    </div>
-    <div class="error-message" id="site_type-error" aria-live="polite"></div>
-</fieldset>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Richiedi Preventivo | Upzeo - Soluzioni Web su Misura</title>
 
-<!-- Se necessario, conserva un blocco per gli altri servizi (es. SEO, manutenzione) -->
-<fieldset class="form-fieldset">
-    <legend>Servizi Aggiuntivi (Opzionale)</legend>
-    <div class="form-grid checkboxes">
-        <div class="checkbox-group">
-            <input type="checkbox" id="service-seo" name="additional_service" value="Ottimizzazione SEO">
-            <label for="service-seo">Ottimizzazione SEO</label>
-        </div>
-        <div class="checkbox-group">
-            <input type="checkbox" id="service-maintenance" name="additional_service" value="Manutenzione/Supporto">
-            <label for="service-maintenance">Manutenzione/Supporto</label>
-        </div>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="style-preventivo.css">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+
+  <div id="3d-background-container">
+    <div id="vanta-canvas"></div>
+  </div>
+
+  <header class="glass-header">
+    <div class="logo-container">
+      <a href="index.html" class="logo">UPZEO</a>
     </div>
-    <div class="error-message" id="additional_service-error" aria-live="polite"></div>
-</fieldset>
+    <nav class="navbar">
+      <button class="menu-toggle" aria-label="Menu" aria-expanded="false">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+      <ul class="nav-menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="index.html#servizi">Servizi</a></li>
+        <li class="dropdown">
+          <button class="dropdown-btn" aria-haspopup="true" aria-expanded="false">Soluzioni ▼</button>
+          <ul class="dropdown-content">
+            <li><a href="index.html#siti-vetrina">Siti Web Vetrina</a></li>
+            <li><a href="index.html#ecommerce">E-commerce</a></li>
+            <li><a href="index.html#soluzioni-personalizzate">Soluzioni Personalizzate</a></li>
+          </ul>
+        </li>
+        <li><a href="contatti.html">Contatti</a></li>
+        <li><a href="preventivo.html" class="active" aria-current="page">Preventivo</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main-content">
+    <section class="quote-hero section animate-on-scroll fade-in">
+      <div class="hero-content content-container">
+        <h1 class="hero-title">Trasforma la tua Idea in Realtà.</h1>
+        <p class="hero-subtitle">Richiedi un preventivo gratuito e senza impegno. Compila il modulo sottostante con i dettagli del tuo progetto e ti risponderò al più presto.</p>
+      </div>
+    </section>
+
+    <section id="quote-form-section" class="section">
+      <div class="content-container">
+        <form id="quote-form" class="quote-form animate-on-scroll fade-in delay-1" novalidate>
+          <h2 class="form-title">Dettagli del Progetto</h2>
+
+          <fieldset class="form-fieldset">
+            <legend>Informazioni di Contatto</legend>
+            <div class="form-grid two-columns">
+              <div class="form-group">
+                <label for="name">Nome Completo <span class="required">*</span></label>
+                <input type="text" id="name" name="name" required aria-required="true">
+                <div class="error-message" aria-live="polite"></div>
+              </div>
+              <div class="form-group">
+                <label for="email">Email <span class="required">*</span></label>
+                <input type="email" id="email" name="email" required aria-required="true" inputmode="email">
+                <div class="error-message" aria-live="polite"></div>
+              </div>
+              <div class="form-group">
+                <label for="phone">Telefono (Opzionale)</label>
+                <input type="tel" id="phone" name="phone" inputmode="tel">
+                <div class="error-message" aria-live="polite"></div>
+              </div>
+              <div class="form-group">
+                <label for="company">Azienda (Opzionale)</label>
+                <input type="text" id="company" name="company">
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Campo per la scelta del Tipo di Sito con radio button -->
+          <fieldset class="form-fieldset">
+            <legend>Tipo di Sito <span class="required">*</span></legend>
+            <div class="form-grid radios">
+              <div class="radio-group">
+                <input type="radio" id="site-vetrina" name="site_type" value="Sito Web Vetrina" required aria-required="true">
+                <label for="site-vetrina">Sito Web Vetrina</label>
+              </div>
+              <div class="radio-group">
+                <input type="radio" id="site-ecommerce" name="site_type" value="E-commerce" required aria-required="true">
+                <label for="site-ecommerce">E-commerce</label>
+              </div>
+              <div class="radio-group">
+                <input type="radio" id="site-custom" name="site_type" value="Soluzione Personalizzata" required aria-required="true">
+                <label for="site-custom">Soluzione Personalizzata</label>
+              </div>
+              <div class="radio-group">
+                <input type="radio" id="site-restyling" name="site_type" value="Restyling Sito Esistente" required aria-required="true">
+                <label for="site-restyling">Restyling Sito Esistente</label>
+              </div>
+            </div>
+            <div class="error-message" id="site_type-error" aria-live="polite"></div>
+          </fieldset>
+
+          <!-- Blocco opzionale per Servizi Aggiuntivi -->
+          <fieldset class="form-fieldset">
+            <legend>Servizi Aggiuntivi (Opzionale)</legend>
+            <div class="form-grid checkboxes">
+              <div class="checkbox-group">
+                <input type="checkbox" id="service-seo" name="additional_service" value="Ottimizzazione SEO">
+                <label for="service-seo">Ottimizzazione SEO</label>
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" id="service-maintenance" name="additional_service" value="Manutenzione/Supporto">
+                <label for="service-maintenance">Manutenzione/Supporto</label>
+              </div>
+            </div>
+            <div class="error-message" id="additional_service-error" aria-live="polite"></div>
+          </fieldset>
+
+          <fieldset class="form-fieldset">
+            <legend>Descrivi il tuo Progetto <span class="required">*</span></legend>
+            <div class="form-group">
+              <label for="project-details">Fornisci più dettagli possibili: obiettivi, funzionalità chiave, pubblico target, siti di riferimento (se presenti), ecc.</label>
+              <textarea id="project-details" name="project_details" rows="8" required aria-required="true"></textarea>
+              <div class="error-message" aria-live="polite"></div>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-fieldset">
+            <legend>Informazioni Aggiuntive (Opzionale)</legend>
+            <div class="form-grid two-columns">
+              <div class="form-group">
+                <label for="budget">Budget Indicativo</label>
+                <select id="budget" name="budget">
+                  <option value="">Seleziona un range...</option>
+                  <option value="<1000€">&lt; 1000€</option>
+                  <option value="1000-3000€">1000€ - 3000€</option>
+                  <option value="3000-5000€">3000€ - 5000€</option>
+                  <option value=">5000€">&gt; 5000€</option>
+                  <option value="Da definire">Da definire</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="timeline">Tempistica Desiderata</label>
+                <select id="timeline" name="timeline">
+                  <option value="">Seleziona tempistica...</option>
+                  <option value="Urgente">Urgente (meno di 1 mese)</option>
+                  <option value="1-2 mesi">1-2 mesi</option>
+                  <option value="3-6 mesi">3-6 mesi</option>
+                  <option value="Flessibile">Flessibile</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset class="form-fieldset privacy-consent">
+            <legend>Consenso Privacy <span class="required">*</span></legend>
+            <div class="checkbox-group">
+              <input type="checkbox" id="privacy" name="privacy_consent" required aria-required="true">
+              <label for="privacy">Dichiaro di aver letto e accettato l'<a href="informativa.html" target="_blank">Informativa sulla Privacy</a> e acconsento al trattamento dei miei dati personali per ricevere una risposta.</label>
+            </div>
+            <div class="error-message" aria-live="polite"></div>
+          </fieldset>
+
+          <div class="form-submit-area">
+            <button type="submit" id="submit-button" class="cta-button">Invia Richiesta</button>
+            <div id="form-status-message" aria-live="assertive"></div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="next-steps section">
+      <div class="content-container text-center animate-on-scroll fade-in">
+        <h2 class="section-title">Cosa Succede Dopo?</h2>
+        <p>Una volta inviata la richiesta:</p>
+        <ol class="steps-list">
+          <li>Analizzerò attentamente i dettagli forniti.</li>
+          <li>Potrei contattarti via email o telefono per eventuali chiarimenti.</li>
+          <li>Riceverai un preventivo dettagliato o una proposta di call conoscitiva entro 24-48 ore lavorative.</li>
+        </ol>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="glass-footer section">
+    <div class="content-container footer-content">
+      <p>&copy; <span id="current-year"></span> Upzeo di Davide Salis. Tutti i diritti riservati.</p>
+      <p>P.IVA 8473690826 | <a href="privacy.html">Privacy Policy</a> | <a href="cookies.html">Cookie Policy</a></p>
+    </div>
+  </footer>
+  <button id="back-to-top" aria-label="Torna su" class="hidden smooth-scroll">&#8679;</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
+  <script src="script-preventivo.js"></script>
+
+</body>
+</html>
