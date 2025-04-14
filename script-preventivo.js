@@ -49,18 +49,24 @@ document.addEventListener('DOMContentLoaded', () => {
         navMenu.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', () => {
                 if (navMenu.classList.contains('active')) {
-                    navMenu.classList.remove('active'); menuToggle.classList.remove('active');
-                    menuToggle.setAttribute('aria-expanded', 'false'); body.classList.remove('no-scroll');
+                    navMenu.classList.remove('active');
+                    menuToggle.classList.remove('active');
+                    menuToggle.setAttribute('aria-expanded', 'false');
+                    body.classList.remove('no-scroll');
                 }
             });
         });
         document.addEventListener('touchstart', (e) => {
             if (navMenu.classList.contains('active') && !navMenu.contains(e.target) && !menuToggle.contains(e.target)) {
-                navMenu.classList.remove('active'); menuToggle.classList.remove('active');
-                menuToggle.setAttribute('aria-expanded', 'false'); body.classList.remove('no-scroll');
+                navMenu.classList.remove('active');
+                menuToggle.classList.remove('active');
+                menuToggle.setAttribute('aria-expanded', 'false');
+                body.classList.remove('no-scroll');
             }
         }, { passive: true });
-    } else { console.error(".menu-toggle or .nav-menu not found."); }
+    } else { 
+        console.error(".menu-toggle or .nav-menu not found."); 
+    }
 
     // === Gestione Dropdown (Copia) ===
     const dropdowns = document.querySelectorAll('.dropdown');
@@ -72,16 +78,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.stopPropagation();
                 const isExpanded = button.getAttribute('aria-expanded') === 'true';
                 document.querySelectorAll('.dropdown-content.active').forEach(ac => {
-                    if (ac !== content) { ac.classList.remove('active'); ac.previousElementSibling.setAttribute('aria-expanded', 'false'); }
+                    if (ac !== content) { 
+                        ac.classList.remove('active'); 
+                        ac.previousElementSibling.setAttribute('aria-expanded', 'false'); 
+                    }
                 });
-                content.classList.toggle('active'); button.setAttribute('aria-expanded', !isExpanded);
+                content.classList.toggle('active'); 
+                button.setAttribute('aria-expanded', !isExpanded);
             });
         }
     });
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.dropdown')) {
             document.querySelectorAll('.dropdown-content.active').forEach(ac => {
-                ac.classList.remove('active'); ac.previousElementSibling.setAttribute('aria-expanded', 'false');
+                ac.classList.remove('active');
+                ac.previousElementSibling.setAttribute('aria-expanded', 'false');
             });
         }
     });
@@ -99,7 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { threshold: 0.1 });
         animatedElements.forEach(el => observer.observe(el));
         console.log(`Observing ${animatedElements.length} elements for scroll animation.`);
-    } else { animatedElements.forEach(el => el.classList.add('is-visible')); }
+    } else { 
+        animatedElements.forEach(el => el.classList.add('is-visible')); 
+    }
 
     // === Bottone Torna Su (Copia) ===
     const backToTopButton = document.getElementById('back-to-top');
@@ -112,7 +125,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === Anno Corrente Footer (Copia) ===
     const yearSpan = document.getElementById('current-year');
-    if (yearSpan) { yearSpan.textContent = new Date().getFullYear(); }
+    if (yearSpan) { 
+        yearSpan.textContent = new Date().getFullYear(); 
+    }
 
     // === NUOVO: Gestione Form Preventivo (Validazione e Invio) ===
     const form = document.getElementById('quote-form');
@@ -136,9 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Funzione per rimuovere errori
         const clearError = (inputElement) => {
-             const formGroup = inputElement.closest('.form-group') || inputElement.closest('.checkbox-group') || inputElement.closest('.form-fieldset');
-             const errorElement = formGroup?.querySelector('.error-message');
-             if (errorElement) {
+            const formGroup = inputElement.closest('.form-group') || inputElement.closest('.checkbox-group') || inputElement.closest('.form-fieldset');
+            const errorElement = formGroup?.querySelector('.error-message');
+            if (errorElement) {
                 errorElement.textContent = '';
                 errorElement.style.visibility = 'hidden';
                 errorElement.style.opacity = '0';
@@ -147,33 +162,34 @@ document.addEventListener('DOMContentLoaded', () => {
             inputElement.removeAttribute('aria-invalid');
         };
 
-         // Funzione validazione email
-         const isValidEmail = (email) => {
+        // Funzione validazione email
+        const isValidEmail = (email) => {
             const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return re.test(String(email).toLowerCase());
-         }
+        };
 
-         // Funzione validazione checkbox gruppo (almeno uno selezionato)
-         const validateCheckboxGroup = (fieldsetElement, inputName) => {
-             const checkboxes = fieldsetElement.querySelectorAll(`input[name="${inputName}"]:checked`);
-             const errorContainer = document.getElementById(`${inputName}-error`) || fieldsetElement.querySelector('.error-message'); // Trova contenitore errore
-             if (checkboxes.length === 0) {
-                 fieldsetElement.classList.add('has-error');
-                 if (errorContainer) {
+        // Funzione validazione checkbox gruppo (almeno uno selezionato)
+        const validateCheckboxGroup = (fieldsetElement, inputName) => {
+            const checkboxes = fieldsetElement.querySelectorAll(`input[name="${inputName}"]:checked`);
+            const errorContainer = document.getElementById(`${inputName}-error`) || fieldsetElement.querySelector('.error-message'); // Trova contenitore errore
+            if (checkboxes.length === 0) {
+                fieldsetElement.classList.add('has-error');
+                if (errorContainer) {
                     errorContainer.textContent = 'Seleziona almeno un servizio.';
-                    errorContainer.style.visibility = 'visible'; errorContainer.style.opacity = '1';
-                 }
-                 return false;
-             } else {
-                 fieldsetElement.classList.remove('has-error');
-                 if (errorContainer) {
-                     errorContainer.textContent = '';
-                     errorContainer.style.visibility = 'hidden'; errorContainer.style.opacity = '0';
-                 }
-                 return true;
-             }
-         }
-
+                    errorContainer.style.visibility = 'visible';
+                    errorContainer.style.opacity = '1';
+                }
+                return false;
+            } else {
+                fieldsetElement.classList.remove('has-error');
+                if (errorContainer) {
+                    errorContainer.textContent = '';
+                    errorContainer.style.visibility = 'hidden';
+                    errorContainer.style.opacity = '0';
+                }
+                return true;
+            }
+        };
 
         // Validazione in tempo reale (on blur)
         form.querySelectorAll('input[required], textarea[required], select[required]').forEach(input => {
@@ -189,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showError(input, 'Inserisci un indirizzo email valido.');
                 }
             });
-             // Pulisce errore anche scrivendo
+            // Pulisce errore anche scrivendo
             input.addEventListener('input', () => clearError(input));
         });
 
@@ -214,29 +230,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     isValid = false;
                     showError(input, 'Questo campo è obbligatorio.');
                 } else if (input.type === 'email' && !isValidEmail(input.value)) {
-                     isValid = false;
-                     showError(input, 'Inserisci un indirizzo email valido.');
+                    isValid = false;
+                    showError(input, 'Inserisci un indirizzo email valido.');
                 }
             });
 
             // Validazione gruppo checkbox servizi
-            const servicesFieldset = form.querySelector('fieldset legend:contains("Tipo di Servizio")')?.closest('fieldset');
+            const servicesFieldset = form.querySelector('fieldset legend')?.textContent.includes("Tipo di Servizio") ? form.querySelector('fieldset legend').closest('fieldset') : null;
             if (servicesFieldset && !validateCheckboxGroup(servicesFieldset, 'service_type')) {
-                 isValid = false;
-                 // Messaggio errore già gestito da validateCheckboxGroup
-                 const firstCheckbox = servicesFieldset.querySelector('input[type="checkbox"]');
-                 if(firstCheckbox) firstCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                isValid = false;
+                // Messaggio errore già gestito da validateCheckboxGroup
+                const firstCheckbox = servicesFieldset.querySelector('input[type="checkbox"]');
+                if(firstCheckbox) firstCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
 
             if (!isValid) {
                 console.log("Form validation failed.");
                 statusMessage.textContent = 'Per favore, correggi gli errori nel modulo.';
                 statusMessage.className = 'error';
-                 // Porta l'utente al primo errore
-                 const firstError = form.querySelector('.has-error');
-                 if (firstError) {
-                     firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                 }
+                // Porta l'utente al primo errore
+                const firstError = form.querySelector('.has-error');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 return; // Blocca invio se non valido
             }
 
@@ -253,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // *** SOSTITUISCI CON IL TUO ENDPOINT (Formspree, Netlify, tuo backend) ***
             const ENDPOINT_URL = 'https://formspree.io/f/xkgjyllb'; // ESEMPIO con Formspree
-            // const ENDPOINT_URL = '/api/submit-quote'; // Esempio con tuo backend
 
             try {
                 const response = await fetch(ENDPOINT_URL, {
@@ -274,10 +289,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     form.querySelectorAll('.has-error').forEach(el => el.classList.remove('has-error'));
                     form.querySelectorAll('.error-message').forEach(el => {
                         el.textContent = '';
-                        el.style.visibility = 'hidden'; el.style.opacity = '0';
+                        el.style.visibility = 'hidden';
+                        el.style.opacity = '0';
                     });
                     // Porta l'utente al messaggio di successo
-                     statusMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    statusMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
                 } else {
                     // Errore dalla risposta del server/servizio
@@ -303,11 +319,11 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Form elements (#quote-form, #form-status-message, #submit-button) not found.");
     }
 
-
     // === Cleanup VantaJS (Copia) ===
     window.addEventListener('beforeunload', () => {
         if (vantaEffect && typeof vantaEffect.destroy === 'function') {
-            vantaEffect.destroy(); console.log("Vanta Destroyed");
+            vantaEffect.destroy();
+            console.log("Vanta Destroyed");
         }
     });
 
