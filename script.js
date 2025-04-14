@@ -1,62 +1,98 @@
 // script.js
 
-document.getElementById("contact-form").addEventListener("submit", function (e) {
-  e.preventDefault();
-  const responseBox = document.getElementById("form-response");
+// Form submission logic
 
+const form = document.getElementById("contact-form");
+const responseBox = document.getElementById("form-response");
+
+form?.addEventListener("submit", function (e) {
+  e.preventDefault();
   responseBox.textContent = "Invio in corso...";
   responseBox.style.color = "#00ffe7";
 
   setTimeout(() => {
     responseBox.textContent = "Messaggio inviato con successo! Ti contatteremo presto.";
+    responseBox.style.color = "#00ff77";
   }, 1500);
 });
 
-// Scroll animations con GSAP
+// GSAP animations
+
 gsap.registerPlugin(ScrollTrigger);
 
-gsap.utils.toArray("section").forEach((section) => {
+// Global scroll animations
+const sections = gsap.utils.toArray("section");
+
+sections.forEach((section) => {
   gsap.from(section, {
     scrollTrigger: {
       trigger: section,
       start: "top 80%",
+      toggleActions: "play none none none",
     },
     opacity: 0,
     y: 50,
-    duration: 1,
-    ease: "power2.out",
+    duration: 1.2,
+    ease: "power4.out",
   });
 });
 
-// Cambia colore header al scroll
-document.addEventListener("scroll", () => {
-  const header = document.querySelector(".header");
+// Sticky header effect
+const header = document.querySelector(".header");
+
+window.addEventListener("scroll", () => {
   if (window.scrollY > 50) {
-    header.style.background = "rgba(0, 0, 0, 0.9)";
+    header.classList.add("scrolled");
   } else {
-    header.style.background = "rgba(0, 0, 0, 0.7)";
+    header.classList.remove("scrolled");
   }
 });
 
-// Menu a tendina responsive
+// Advanced dropdown menu
+const nav = document.querySelector(".nav");
+const navWrapper = document.createElement("div");
+navWrapper.classList.add("nav-wrapper");
+
 const menuToggle = document.createElement("div");
 menuToggle.classList.add("menu-toggle");
-menuToggle.innerHTML = `<span></span><span></span><span></span>`;
+menuToggle.innerHTML = `
+  <span class="bar"></span>
+  <span class="bar"></span>
+  <span class="bar"></span>
+`;
 
-const nav = document.querySelector(".nav");
 const navLinks = document.createElement("div");
 navLinks.classList.add("nav-links");
 navLinks.innerHTML = `
   <a href="#hero">Home</a>
   <a href="#services">Servizi</a>
-  <a href="#about">Chi siamo</a>
+  <div class="dropdown">
+    <a class="dropbtn">Chi siamo</a>
+    <div class="dropdown-content">
+      <a href="#team">Il nostro team</a>
+      <a href="#storia">La nostra storia</a>
+      <a href="#missione">Missione</a>
+    </div>
+  </div>
   <a href="#contact">Contatti</a>
 `;
 
-nav.innerHTML = "";
-nav.appendChild(menuToggle);
-nav.appendChild(navLinks);
-
 menuToggle.addEventListener("click", () => {
   navLinks.classList.toggle("show");
+  menuToggle.classList.toggle("open");
+});
+
+navWrapper.appendChild(menuToggle);
+navWrapper.appendChild(navLinks);
+nav.innerHTML = "";
+nav.appendChild(navWrapper);
+
+// Optional: Close menu on link click (mobile UX improvement)
+document.querySelectorAll(".nav-links a").forEach(link => {
+  link.addEventListener("click", () => {
+    if (navLinks.classList.contains("show")) {
+      navLinks.classList.remove("show");
+      menuToggle.classList.remove("open");
+    }
+  });
 });
