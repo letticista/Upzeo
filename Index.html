@@ -1,91 +1,101 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upzeo - Siti Web per PMI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upzeo | Il Futuro del Tuo Business Online</title>
+  <meta name="description" content="Upzeo trasforma la tua azienda con soluzioni web innovative e personalizzate per piccole e medie imprese. Scopri come il digitale può rivoluzionare il tuo business.">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <div class="container">
-                <div class="logo">Upzeo</div>
-                <div class="nav-links">
-                    <a href="#services">Servizi</a>
-                    <a href="#portfolio">Portfolio</a>
-                    <a href="#contact">Contatti</a>
-                </div>
-                <div class="hamburger" onclick="toggleMenu()">&#9776;</div>
-            </div>
-        </nav>
-        <div class="mobile-menu" id="mobile-menu">
-            <a href="#services">Servizi</a>
-            <a href="#portfolio">Portfolio</a>
-            <a href="#contact">Contatti</a>
-        </div>
-    </header>
-    
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Porta la tua azienda nel futuro digitale</h1>
-            <p>Design moderni, funzionali, e ottimizzati per ogni dispositivo. Siti web progettati su misura per il tuo business.</p>
-        </div>
+  <header class="header">
+    <div class="header-container">
+      <div class="logo">Upzeo</div>
+      <nav class="nav">
+        <ul class="nav-list">
+          <li><a href="#hero" class="nav-link">Home</a></li>
+          <li><a href="#services" class="nav-link">Servizi</a></li>
+          <li><a href="#portfolio" class="nav-link">Portfolio</a></li>
+          <li><a href="#contact" class="nav-link">Contatti</a></li>
+        </ul>
+      </nav>
+      <div class="hamburger" id="hamburger">&#9776;</div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#hero" class="mobile-link">Home</a>
+      <a href="#services" class="mobile-link">Servizi</a>
+      <a href="#portfolio" class="mobile-link">Portfolio</a>
+      <a href="#contact" class="mobile-link">Contatti</a>
+    </div>
+  </header>
 
-        <div class="side-text-left">La tua impresa, il nostro design</div>
-        <div class="side-text-right">Innovazione che ti farà emergere</div>
-    </section>
+  <section id="hero" class="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1 class="headline">Il Futuro Digitale è Adesso</h1>
+      <p class="subheadline">Trasforma la tua azienda con soluzioni web innovative, progettate su misura per far crescere il tuo business.</p>
+      <a href="#contact" class="cta-button">Richiedi una Consulenza</a>
+    </div>
+    <div class="side-phrase left-phrase">Innovazione Tangibile</div>
+    <div class="side-phrase right-phrase">Crescita Digitale</div>
+  </section>
 
-    <section id="services" class="services">
-        <h2>Servizi</h2>
-        <div class="service-list">
-            <div class="service-card">
-                <h3>Design su Misura</h3>
-                <p>Progettiamo siti web unici, studiati appositamente per rispecchiare la tua azienda.</p>
-            </div>
-            <div class="service-card">
-                <h3>Ottimizzazione Mobile</h3>
-                <p>I nostri siti sono completamente responsive, perfetti su ogni dispositivo.</p>
-            </div>
-            <div class="service-card">
-                <h3>Supporto Continuo</h3>
-                <p>Offriamo assistenza continua per garantire che il tuo sito funzioni sempre al meglio.</p>
-            </div>
-        </div>
-    </section>
+  <section id="services" class="section services">
+    <div class="section-header">
+      <h2>Servizi Personalizzati</h2>
+      <p>Progettiamo e sviluppiamo siti web che rispecchiano la tua identità aziendale e spingono il tuo business verso il successo.</p>
+    </div>
+    <div class="cards-container">
+      <div class="card">
+        <h3>Sviluppo Web Custom</h3>
+        <p>Realizziamo siti moderni e performanti, utilizzando tecnologie all'avanguardia per garantire velocità e sicurezza.</p>
+      </div>
+      <div class="card">
+        <h3>Design & UI/UX</h3>
+        <p>Esperienze utente d'impatto, con interfacce intuitive e design futuristici che catturano l'attenzione.</p>
+      </div>
+      <div class="card">
+        <h3>SEO & Digital Marketing</h3>
+        <p>Strategie SEO e campagne digitali su misura per far emergere la tua azienda nel mondo online.</p>
+      </div>
+    </div>
+  </section>
 
-    <section id="portfolio" class="portfolio">
-        <h2>Progetti & Animazioni</h2>
-        <div class="portfolio-items">
-            <div class="animation-card">
-                <div class="animation-1"></div>
-                <h3>Esperienza Interattiva</h3>
-            </div>
-            <div class="animation-card">
-                <div class="animation-2"></div>
-                <h3>Design Futuristici</h3>
-            </div>
-        </div>
-    </section>
+  <section id="portfolio" class="section portfolio">
+    <div class="section-header">
+      <h2>Portfolio Innovativo</h2>
+      <p>Guarda le nostre animazioni e progetti interattivi: un concentrato di creatività e tecnologia per valorizzare il tuo brand.</p>
+    </div>
+    <div class="animation-container">
+      <div class="animation-card">
+        <div class="animation-box animation-box-1"></div>
+        <h3>Esperienze Interattive</h3>
+      </div>
+      <div class="animation-card">
+        <div class="animation-box animation-box-2"></div>
+        <h3>Design Futuristici</h3>
+      </div>
+    </div>
+  </section>
 
-    <section id="contact" class="contact">
-        <h2>Contattaci</h2>
-        <div class="contact-info">
-            <p>Per domande o richieste, siamo a tua disposizione.</p>
-        </div>
-        <form id="contact-form">
-            <input type="text" placeholder="Nome" required>
-            <input type="email" placeholder="Email" required>
-            <textarea placeholder="Messaggio" required></textarea>
-            <button type="submit">Invia</button>
-        </form>
-    </section>
+  <section id="contact" class="section contact">
+    <div class="section-header">
+      <h2>Contattaci</h2>
+      <p>Parliamo del tuo progetto! Inviaci una richiesta e scopri come possiamo trasformare il tuo business online.</p>
+    </div>
+    <form id="contact-form" class="contact-form">
+      <input type="text" name="name" placeholder="Il tuo nome" required>
+      <input type="email" name="email" placeholder="La tua email" required>
+      <textarea name="message" placeholder="Il tuo messaggio" required></textarea>
+      <button type="submit" class="cta-button">Invia</button>
+    </form>
+  </section>
 
-    <footer class="footer">
-        <p>&copy; 2025 Upzeo. Tutti i diritti riservati.</p>
-    </footer>
+  <footer class="footer">
+    <p>&copy; 2025 Upzeo. Tutti i diritti riservati. | CEO: Davide Salis</p>
+  </footer>
 
-    <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
