@@ -4,7 +4,8 @@
   --secondary: #ff00d4;
   --dark: #0a0a0a;
   --darker: #050505;
-  --glass: rgba(10, 10, 10, 0.85);
+  --glass: rgba(10, 10, 10, 0.95);
+  --gradient: linear-gradient(45deg, var(--primary), var(--secondary));
 }
 
 * {
@@ -21,7 +22,7 @@ body {
   line-height: 1.6;
 }
 
-/* EFFETTO 3D BACKGROUND */
+/* 3D BACKGROUND */
 #3d-background {
   position: fixed;
   top: 0;
@@ -41,24 +42,20 @@ body {
   align-items: center;
   background: var(--glass);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 1000;
 }
 
 .logo {
   font-size: 2rem;
   font-weight: 700;
-}
-
-.logo-gradient {
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  background: var(--gradient);
   -webkit-background-clip: text;
   background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
-/* NAVBAR */
+/* NAV MENU */
 .nav-menu {
   display: flex;
   gap: 2rem;
@@ -68,25 +65,13 @@ body {
 .nav-menu a {
   color: white;
   text-decoration: none;
-  font-weight: 500;
-  position: relative;
-  padding: 0.5rem 0;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
 }
 
-.nav-menu a::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: var(--primary);
-  transition: width 0.3s ease;
-}
-
-.nav-menu a:hover::after,
-.nav-menu a.active::after {
-  width: 100%;
+.nav-menu a:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* DROPDOWN */
@@ -100,8 +85,8 @@ body {
   left: 0;
   background: var(--darker);
   min-width: 200px;
-  border-radius: 0.5rem;
   padding: 1rem;
+  border-radius: 0.5rem;
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
@@ -115,29 +100,22 @@ body {
 
 /* HERO SECTION */
 .hero-container {
-  padding: 20vh 5% 10vh;
+  padding: 25vh 5% 15vh;
   text-align: center;
-  max-width: 900px;
-  margin: 0 auto;
 }
 
 .hero-title {
-  font-size: clamp(2rem, 6vw, 4rem);
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
   margin-bottom: 1.5rem;
-  line-height: 1.2;
-}
-
-.text-3d {
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  line-height: 1.1;
 }
 
 .cta-button {
-  display: inline-block;
-  padding: 1rem 2rem;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.2rem 2.5rem;
+  background: var(--gradient);
   color: black;
   font-weight: 600;
   border-radius: 50px;
@@ -147,25 +125,101 @@ body {
 }
 
 .cta-button:hover {
-  transform: translateY(-5px);
+  transform: translateY(-3px);
   box-shadow: 0 10px 30px rgba(0, 255, 231, 0.4);
 }
 
-/* RESPONSIVE */
+/* STATS GRID */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  margin-top: 4rem;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2rem;
+  border-radius: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: var(--gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* SERVICES GRID */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 4rem;
+}
+
+.service-card {
+  background: var(--darker);
+  padding: 2rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-10px);
+}
+
+/* MOBILE MENU */
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 1002;
+}
+
+.menu-toggle .bar {
+  width: 25px;
+  height: 3px;
+  background: white;
+  margin: 4px 0;
+  transition: all 0.3s ease;
+}
+
 @media (max-width: 768px) {
+  .menu-toggle {
+    display: block;
+  }
+
   .nav-menu {
     position: fixed;
-    top: 80px;
+    top: 0;
     right: -100%;
-    flex-direction: column;
+    height: 100vh;
+    width: 70%;
     background: var(--darker);
-    width: 80%;
-    height: calc(100vh - 80px);
+    flex-direction: column;
     padding: 2rem;
     transition: right 0.3s ease;
   }
 
   .nav-menu.active {
     right: 0;
+  }
+
+  .menu-toggle.active .bar:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+
+  .menu-toggle.active .bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  .menu-toggle.active .bar:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
   }
 }
