@@ -1,50 +1,47 @@
-// INIZIALIZZAZIONE 3D
-document.addEventListener('DOMContentLoaded', () => {
-  // Background 3D
-  VANTA.GLOBE({
-    el: "#3d-bg",
+document.addEventListener('DOMContentLoaded', function() {
+  // INIZIALIZZA EFFETTO 3D
+  VANTA.WAVES({
+    el: "#3d-background",
     color: 0x00ffe7,
-    backgroundColor: 0x0a0a0a,
-    size: 1.2,
-    gyroControls: false
+    waveHeight: 20,
+    shininess: 50,
+    waveSpeed: 1.5,
+    zoom: 0.8
   });
 
-  // Menu mobile
+  // MENU MOBILE
   const menuToggle = document.querySelector('.menu-toggle');
-  const navLinks = document.querySelector('.nav-links');
+  const navMenu = document.querySelector('.nav-menu');
 
-  menuToggle.addEventListener('click', () => {
-    navLinks.classList.toggle('active');
+  menuToggle.addEventListener('click', function() {
+    navMenu.classList.toggle('active');
     menuToggle.classList.toggle('active');
   });
 
-  // Animazione numeri
-  const animateNumbers = () => {
-    const counters = document.querySelectorAll('.stat-number');
-    const speed = 200;
-    
-    counters.forEach(counter => {
-      const target = +counter.getAttribute('data-count');
-      const count = +counter.innerText;
-      const increment = target / speed;
-
-      if (count < target) {
-        counter.innerText = Math.ceil(count + increment);
-        setTimeout(animateNumbers, 1);
-      } else {
-        counter.innerText = target;
+  // ANIMAZIONE NUMERI
+  function animateValue(obj, start, end, duration) {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      obj.innerHTML = Math.floor(progress * (end - start) + start);
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
       }
-    });
-  };
+    };
+    window.requestAnimationFrame(step);
+  }
 
-  // Trigger animazioni quando visibili
+  // TRIGGER ANIMAZIONI
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        entry.target.classList.add('animate');
         if (entry.target.id === 'hero') {
-          animateNumbers();
+          document.querySelectorAll('.stat-number').forEach(el => {
+            animateValue(el, 0, parseInt(el.getAttribute('data-count')), 2000);
+          });
         }
+        entry.target.classList.add('animated');
       }
     });
   }, { threshold: 0.1 });
