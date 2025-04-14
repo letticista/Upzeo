@@ -1,50 +1,44 @@
-const App = (() => {
-  const init = () => {
-    initNavigation();
-    initVanta();
-    initAnimations();
-    initForm();
-  };
+document.addEventListener('DOMContentLoaded', () => {
+  // MENU MOBILE
+  const menuToggle = document.querySelector('.menu-toggle');
+  const navList = document.querySelector('.nav-list');
+  
+  menuToggle?.addEventListener('click', () => {
+    menuToggle.classList.toggle('active');
+    navList.classList.toggle('active');
+    
+    // Animazione hamburger menu
+    if(menuToggle.classList.contains('active')) {
+      menuToggle.children[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
+      menuToggle.children[1].style.opacity = '0';
+      menuToggle.children[2].style.transform = 'rotate(-45deg) translate(5px, -5px)';
+    } else {
+      menuToggle.children[0].style.transform = 'none';
+      menuToggle.children[1].style.opacity = '1';
+      menuToggle.children[2].style.transform = 'none';
+    }
+  });
 
-  const initNavigation = () => {
-    const menuToggle = document.querySelector('.menu-toggle');
-    const navLinks = document.querySelector('.nav-links');
-    const dropdowns = document.querySelectorAll('.dropdown');
-
-    // Menu mobile
-    menuToggle?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      menuToggle.classList.toggle('active');
-      navLinks.classList.toggle('active');
-      document.body.classList.toggle('no-scroll');
+  // CHIUSURA MENU AL CLICK SU LINK
+  document.querySelectorAll('.nav-list a').forEach(link => {
+    link.addEventListener('click', () => {
+      navList.classList.remove('active');
+      menuToggle.classList.remove('active');
     });
+  });
 
-    // Chiusura al click esterno
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.nav')) {
-        menuToggle?.classList.remove('active');
-        navLinks?.classList.remove('active');
-        document.body.classList.remove('no-scroll');
+  // DROPDOWN PER MOBILE
+  const dropdowns = document.querySelectorAll('.dropdown');
+  
+  dropdowns.forEach(dropdown => {
+    const link = dropdown.querySelector('a');
+    
+    link.addEventListener('click', (e) => {
+      if(window.innerWidth <= 768) {
+        e.preventDefault();
+        const menu = dropdown.querySelector('.dropdown-menu');
+        menu.style.maxHeight = menu.style.maxHeight ? null : '300px';
       }
     });
-
-    // Dropdown
-    dropdowns.forEach(dropdown => {
-      const btn = dropdown.querySelector('.dropbtn');
-      const content = dropdown.querySelector('.dropdown-content');
-
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        content.classList.toggle('open');
-        btn.setAttribute('aria-expanded', content.classList.contains('open'));
-      });
-    });
-  };
-
-  // Resto delle funzioni mantenuto
-  // ...
-
-  return { init };
-})();
-
-document.addEventListener('DOMContentLoaded', App.init);
+  });
+});
