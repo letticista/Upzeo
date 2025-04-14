@@ -1,57 +1,113 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upzeo | Web Solutions Futuristiche</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upzeo | Web Solutions Avanzate</title>
+
+    <!-- Preload risorse critiche -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Montserrat:wght@800&display=swap" as="font" crossorigin>
+
+    <!-- CSS Ottimizzato -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
 </head>
 <body>
-  <canvas id="background-canvas"></canvas>
-
-  <header class="navbar">
-    <div class="logo">UPZEO</div>
-    <nav>
-      <a href="#servizi">Servizi</a>
-      <a href="#chi-siamo">Chi siamo</a>
-      <a href="#contatti">Contatti</a>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <path d="M20 0L40 20L20 40L0 20L20 0Z" fill="url(#gradient)"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="var(--primary)"/>
+                            <stop offset="100%" stop-color="var(--secondary)"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>UPZEO</span>
+            </a>
+            <div class="nav-links">
+                <a href="#services" class="nav-link">Servizi</a>
+                <a href="#portfolio" class="nav-link">Portfolio</a>
+                <a href="#about" class="nav-link">Chi Sono</a>
+                <a href="#contact" class="cta-button">Contatti</a>
+            </div>
+        </div>
     </nav>
-  </header>
 
-  <section class="hero">
-    <h1>Soluzioni Web Futuristiche</h1>
-    <p>Innovazione. Performance. Design che lascia il segno.</p>
-    <a href="#contatti" class="btn-neon">Contattaci</a>
-  </section>
+    <!-- Hero Section -->
+    <section id="hero" class="hero">
+        <div class="hero-content">
+            <h1>Soluzioni Web Innovative per le PMI</h1>
+            <p>Design futuristico, performance avanzate, e risultati straordinari</p>
+            <a href="#contact" class="cta-button">Contattaci</a>
+        </div>
+    </section>
 
-  <section id="servizi" class="section">
-    <h2>I nostri servizi</h2>
-    <div class="cards">
-      <div class="card">Siti Web Personalizzati</div>
-      <div class="card">SEO Avanzato</div>
-      <div class="card">UI/UX Design</div>
-    </div>
-  </section>
+    <!-- Services Section -->
+    <section id="services" class="services">
+        <div class="section-header">
+            <h2>Servizi Premium</h2>
+            <p>Soluzioni su misura per la tua azienda</p>
+        </div>
+        <div class="services-list">
+            <div class="service-card">
+                <h3>Sviluppo Web</h3>
+                <p>Realizzazione di siti web personalizzati e ottimizzati per ogni esigenza</p>
+            </div>
+            <div class="service-card">
+                <h3>SEO Avanzato</h3>
+                <p>Strategie SEO per aumentare la visibilità del tuo sito sui motori di ricerca</p>
+            </div>
+            <div class="service-card">
+                <h3>Design UI/UX</h3>
+                <p>Esperienza utente migliorata con un design innovativo e funzionale</p>
+            </div>
+        </div>
+    </section>
 
-  <section id="chi-siamo" class="section">
-    <h2>Chi siamo</h2>
-    <p>Davide Salis, CEO di Upzeo. Sviluppo esperienze digitali che portano risultati reali.</p>
-  </section>
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="portfolio">
+        <div class="section-header">
+            <h2>Il Nostro Portfolio</h2>
+            <p>Progetti che parlano da soli</p>
+        </div>
+        <div class="portfolio-items">
+            <div class="portfolio-item">
+                <img src="images/project1.jpg" alt="Project 1">
+                <h3>E-commerce Fashion</h3>
+            </div>
+            <div class="portfolio-item">
+                <img src="images/project2.jpg" alt="Project 2">
+                <h3>Landing Page</h3>
+            </div>
+        </div>
+    </section>
 
-  <section id="contatti" class="section">
-    <h2>Contattaci</h2>
-    <form id="contact-form">
-      <input type="text" placeholder="Il tuo nome" required>
-      <input type="email" placeholder="La tua email" required>
-      <textarea placeholder="Il tuo messaggio" required></textarea>
-      <button type="submit" class="btn-neon">Invia</button>
-    </form>
-  </section>
+    <!-- Contact Section -->
+    <section id="contact" class="contact">
+        <div class="contact-info">
+            <h2>Contattaci</h2>
+            <p>Sei pronto a lavorare con noi? Mandaci un messaggio!</p>
+        </div>
+        <form id="contact-form">
+            <input type="text" name="name" placeholder="Il tuo nome" required>
+            <input type="email" name="email" placeholder="La tua email" required>
+            <textarea name="message" placeholder="Il tuo messaggio" required></textarea>
+            <button type="submit">Invia</button>
+        </form>
+    </section>
 
-  <footer>
-    <p>&copy; 2025 Upzeo. Tutti i diritti riservati.</p>
-  </footer>
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 Upzeo. Tutti i diritti riservati.</p>
+    </footer>
 
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
