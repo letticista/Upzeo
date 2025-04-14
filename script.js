@@ -1,34 +1,35 @@
-// JavaScript for theme toggle
-document.querySelector('.theme-toggle').addEventListener('click', function () {
-    const body = document.body;
-    if (body.getAttribute('data-theme') === 'dark') {
-        body.setAttribute('data-theme', 'light');
-    } else {
-        body.setAttribute('data-theme', 'dark');
-    }
-});
-
-// JavaScript for smooth scroll to section
-document.querySelectorAll('.nav-link').forEach(anchor => {
+// Effetto per la navigazione fluida
+document.querySelectorAll('.nav-links a').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        window.scrollTo({
-            top: target.offsetTop - 50,
-            behavior: 'smooth'
+        document.querySelector(this.getAttribute('href')).scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
         });
     });
 });
 
-// Form submission handling
-document.querySelector('#contact-form').addEventListener('submit', function (e) {
+// Gestures per mobile
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.body.addEventListener('touchstart', function (e) {
+    touchStartX = e.changedTouches[0].screenX;
+});
+
+document.body.addEventListener('touchend', function (e) {
+    touchEndX = e.changedTouches[0].screenX;
+    if (touchEndX - touchStartX > 50) {
+        // Esegui azione swipe a destra
+        console.log('Swipe Right');
+    } else if (touchStartX - touchEndX > 50) {
+        // Esegui azione swipe a sinistra
+        console.log('Swipe Left');
+    }
+});
+
+// Anima il form di contatto
+document.getElementById('contact-form').addEventListener('submit', function (e) {
     e.preventDefault();
-    const formData = new FormData(this);
-    const formObject = Object.fromEntries(formData.entries());
-
-    console.log('Form Data Submitted:', formObject);
-
-    // Example of a simple alert message after form submission
-    alert('Grazie per averci contattato! Ti risponderemo al più presto.');
-    this.reset(); // Reset form after submission
+    alert('Messaggio inviato! Ti risponderemo presto.');
 });
