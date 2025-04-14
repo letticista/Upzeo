@@ -22,6 +22,11 @@ body {
     line-height: 1.6;
 }
 
+/* Stile per impedire lo scroll quando il menu mobile è aperto */
+body.no-scroll {
+    overflow: hidden;
+}
+
 /* 3D BACKGROUND */
 #3d-background {
     position: fixed;
@@ -60,18 +65,29 @@ body {
     display: flex;
     gap: 2rem;
     list-style: none;
-    bottom-left: 10 px;
+    /* Rimosso bottom-left: 10px; che sembrava fuori posto */
 }
 
-.nav-menu a {
+.nav-menu li {
+    position: relative; /* Necessario per il posizionamento assoluto del dropdown */
+}
+
+.nav-menu a, .dropdown-btn {
     color: white;
     text-decoration: none;
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
     transition: all 0.3s ease;
+    display: block; /* Assicura che l'intera area sia cliccabile */
+    background: none; /* Stile base per il bottone dropdown */
+    border: none;     /* Stile base per il bottone dropdown */
+    font-family: inherit; /* Eredita il font */
+    font-size: inherit;  /* Eredita la dimensione font */
+    cursor: pointer;     /* Cursore a puntatore */
+    text-align: left;    /* Allineamento testo per il bottone */
 }
 
-.nav-menu a:hover {
+.nav-menu a:hover, .dropdown-btn:hover {
     background: rgba(255, 255, 255, 0.05);
 }
 
@@ -80,35 +96,77 @@ body {
     position: relative;
 }
 
+/* Stile base per il bottone dropdown */
+.dropdown-btn {
+    width: 100%; /* Occupa tutta la larghezza del li genitore */
+}
+
 .dropdown-content {
     position: absolute;
     top: 100%;
     left: 0;
     background: var(--darker);
     min-width: 200px;
-    padding: 1rem;
+    padding: 0.5rem 0; /* Ridotto padding verticale */
     border-radius: 0.5rem;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease; /* Transizione specifica */
     z-index: 1001;
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Aggiunto bordo per coerenza */
+    list-style: none; /* Rimuovi punti elenco */
 }
 
+.dropdown-content li a {
+    padding: 0.75rem 1.5rem; /* Padding interno per i link del dropdown */
+    white-space: nowrap; /* Impedisce al testo di andare a capo */
+}
+
+/* Mostra dropdown su hover (desktop) */
 .dropdown:hover .dropdown-content {
     opacity: 1;
     visibility: visible;
 }
 
+/* === NUOVA REGOLA === */
+/* Mostra dropdown quando ha la classe .active (gestita da JS per click/mobile) */
+.dropdown-content.active {
+    opacity: 1;
+    visibility: visible;
+}
+/* === FINE NUOVA REGOLA === */
+
+
 /* HERO SECTION */
+.section { /* Aggiunto padding standard alle sezioni */
+    padding: 6rem 5% 4rem;
+}
+
 .hero-container {
-    padding: 25vh 5% 15vh;
+    padding: 18vh 5% 10vh; /* Ricalibrato padding per tener conto dell'header fisso */
     text-align: center;
+    position: relative; /* Necessario per z-index se sovrapposto */
+    z-index: 1;
 }
 
 .hero-title {
     font-size: clamp(2.5rem, 7vw, 4.5rem);
     margin-bottom: 1.5rem;
     line-height: 1.1;
+}
+
+.hero-subtitle {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    color: rgba(255, 255, 255, 0.8);
+    max-width: 600px;
+    margin: 0 auto 2rem;
+}
+
+.text-gradient {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .cta-button {
@@ -133,87 +191,178 @@ body {
 /* STATS GRID */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 2rem;
-    margin-top: 4rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Leggermente ridotto minmax */
+    gap: 1.5rem; /* Ridotto gap */
+    margin-top: 5rem;
+    max-width: 800px; /* Limitata larghezza massima */
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .stat-card {
     background: rgba(255, 255, 255, 0.05);
-    padding: 2rem;
-    border-radius: 1rem;
-    backdrop-filter: blur(10px);
+    padding: 1.5rem; /* Ridotto padding */
+    border-radius: 0.75rem; /* Ridotto border-radius */
+    backdrop-filter: blur(8px); /* Leggermente ridotto blur */
+    text-align: center;
 }
 
 .stat-number {
-    font-size: 2.5rem;
+    font-size: 2rem; /* Ridotto font-size */
     font-weight: 700;
     background: var(--gradient);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    margin-bottom: 0.5rem; /* Aggiunto spazio sotto il numero */
+}
+
+.stat-label {
+    font-size: 0.9rem; /* Ridotto font-size */
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* SERVICES SECTION */
+#servizi h2 {
+    text-align: center;
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin-bottom: 3rem;
 }
 
 /* SERVICES GRID */
 .services-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Adattato minmax */
     gap: 2rem;
-    margin-top: 4rem;
+    /* Rimosso margin-top, gestito dal padding della section */
 }
 
 .service-card {
     background: var(--darker);
-    padding: 2rem;
+    padding: 2.5rem 2rem; /* Adattato padding */
     border-radius: 1rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: transform 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Aggiunta transizione ombra */
+    position: relative;
+    overflow: hidden; /* Nasconde overflow per effetti */
 }
 
 .service-card:hover {
-    transform: translateY(-10px);
+    transform: translateY(-8px); /* Leggermente ridotto effetto hover */
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
 }
+
+/* Rimosso .card-3d che non era utilizzato */
+
+.service-card h3 {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    color: white; /* Assicura colore bianco */
+}
+
+.service-card p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+}
+
 
 /* MOBILE MENU */
 .menu-toggle {
-    display: none;
+    display: none; /* Nascondi di default */
     background: none;
     border: none;
     cursor: pointer;
-    z-index: 1002;
+    padding: 0.5rem; /* Aggiunto padding per area cliccabile */
+    z-index: 1002; /* Assicura sia sopra altri elementi dell'header */
+    position: relative; /* Necessario per z-index */
 }
 
 .menu-toggle .bar {
+    display: block; /* Assicura sia block per dimensioni */
     width: 25px;
     height: 3px;
     background: white;
-    margin: 4px 0;
-    transition: all 0.3s ease;
+    margin: 5px 0; /* Aggiustato margine */
+    transition: all 0.3s ease-in-out;
 }
 
+/* Animazione hamburger -> X */
+.menu-toggle.active .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+.menu-toggle.active .bar:nth-child(2) {
+    opacity: 0;
+}
+.menu-toggle.active .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+
+/* Media Query per Mobile */
 @media (max-width: 768px) {
-    .nav-menu {
-        display: none; /* Nascondi il menu desktop su mobile */
+    .menu-toggle {
+        display: block; /* Mostra il bottone hamburger */
+        /* Rimosso position absolute, lasciato gestire dal flex dell'header */
     }
 
-    .menu-toggle {
-        display: block;
-        position: absolute;
-        top: 1.5rem;
-        right: 5%;
+    .nav-menu {
+        display: none; /* Nascondi il menu desktop */
+        position: fixed; /* Posizione fissa per overlay */
+        top: 0; /* Allinea in alto */
+        right: -100%; /* Nascondi fuori schermo a destra */
+        width: 80%; /* Larghezza menu mobile */
+        max-width: 300px; /* Larghezza massima */
+        height: 100vh; /* Altezza piena */
+        background: var(--darker); /* Sfondo scuro */
+        flex-direction: column; /* Elementi in colonna */
+        padding: 6rem 2rem 2rem; /* Padding interno (più spazio in alto per l'header) */
+        gap: 1.5rem; /* Spazio tra elementi */
+        transition: right 0.4s ease-in-out; /* Transizione slide */
+        z-index: 1001; /* Sopra il contenuto ma sotto il toggle se necessario */
+        overflow-y: auto; /* Permetti scroll se contenuto eccede */
+        border-left: 1px solid rgba(255, 255, 255, 0.1); /* Bordo separatore */
     }
 
     .nav-menu.active {
-        display: flex;
-        position: fixed;
-        top: 0;
-        right: 0;
-        height: 100vh;
-        width: 70%;
-        background: var(--darker);
-        flex-direction: column;
-        padding: 2rem;
-        transition: right 0.3s ease;
-        z-index: 1001;
+        display: flex; /* Mostra quando attivo */
+        right: 0; /* Fai scorrere in vista */
+    }
+
+    /* Stili specifici per dropdown dentro menu mobile */
+    .nav-menu .dropdown-content {
+        position: static; /* Cambia posizione a statica dentro il flusso mobile */
+        opacity: 1; /* Rendi sempre opaco (visibilità gestita da display) */
+        visibility: visible; /* Rendi sempre visibile (visibilità gestita da display) */
+        background: none; /* Rimuovi sfondo separato */
+        border: none; /* Rimuovi bordo separato */
+        padding: 0 0 0 1rem; /* Aggiungi indentazione a sinistra */
+        min-width: auto; /* Larghezza automatica */
+        display: none; /* Nascondi di default */
+        margin-top: 0.5rem; /* Spazio sopra il sotto-menu */
+    }
+
+    /* Mostra il dropdown mobile quando .active è presente (da JS) */
+    .nav-menu .dropdown-content.active {
+        display: block; /* Mostra come blocco */
+    }
+
+    /* Stili per i link nel dropdown mobile */
+    .nav-menu .dropdown-content li a {
+        padding: 0.5rem 1rem; /* Adatta padding */
+        font-size: 0.95rem; /* Leggermente più piccolo */
+        color: rgba(255, 255, 255, 0.8); /* Colore leggermente attenuato */
+    }
+     .nav-menu .dropdown-content li a:hover {
+         color: white;
+         background: rgba(255, 255, 255, 0.1);
+     }
+
+    .hero-container {
+        padding-top: 15vh; /* Più spazio in alto su mobile */
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr; /* Una colonna su mobile */
+        max-width: 300px; /* Ancora più stretto */
     }
 }
