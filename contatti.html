@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Sono & Contatti | Upzeo - Soluzioni Web Avanzate</title> <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+
+    <link rel="stylesheet" href="style-contatti.css">
+
+    <link rel.icon" href="favicon.ico" type="image/x-icon">
+
+</head>
+<body> <div id="3d-background-container">
+         <div id="vanta-canvas"></div> </div>
+
+    <header class="glass-header">
+        <div class="logo-container"> <a href="index.html" class="logo">UPZEO</a>
+        </div>
+        <nav class="navbar">
+            <button class="menu-toggle" aria-label="Menu" aria-expanded="false">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#servizi">Servizi</a></li> <li class="dropdown">
+                    <button class="dropdown-btn" aria-haspopup="true" aria-expanded="false">Soluzioni ▼</button>
+                    <ul class="dropdown-content">
+                        <li><a href="index.html#siti-vetrina">Siti Web Vetrina</a></li>
+                        <li><a href="index.html#ecommerce">E-commerce</a></li>
+                        <li><a href="index.html#soluzioni-personalizzate">Soluzioni Personalizzate</a></li>
+                    </ul>
+                </li>
+                <li><a href="contatti.html" class="active" aria-current="page">Contatti</a></li> </ul>
+        </nav>
+    </header>
+    <main id="main-content">
+
+        <section class="contact-hero section animate-on-scroll fade-in">
+            <div class="hero-content">
+                <h1 class="hero-title">La Mente dietro il Codice.</h1>
+                <p class="hero-subtitle">Scopri la mia storia e come possiamo collaborare per portare la tua presenza online al livello successivo.</p>
+                <a href="#contatti-info-anchor" class="cta-button smooth-scroll">Contattami Ora</a>
+            </div>
+        </section>
+
+        <section class="about-me section">
+            <div class="about-grid content-container">
+                <div class="about-image animate-on-scroll slide-in-left">
+                    <img src="placeholder-foto-ceo.jpg" alt="[Il tuo Nome] - CEO di Upzeo">
+                </div>
+                <div class="about-text animate-on-scroll slide-in-right">
+                    <h2 class="section-title">[Il tuo Nome]</h2>
+                    <h3 class="section-subtitle">CEO, Founder & Sviluppatore Web Full-Stack</h3>
+                    <p>Sono [Tuo Nome], l'imprenditore digitale e sviluppatore che ha fondato Upzeo. La mia missione è trasformare le idee in realtà digitali performanti, aiutando le PMI a distinguersi online con soluzioni web personalizzate, veloci e sicure.</p>
+                    <p>Credo fermamente nel potere di un sito web ben progettato non solo come vetrina, ma come vero e proprio motore di crescita per il business.</p>
+                    </div>
+            </div>
+        </section>
+
+        <section class="my-story section">
+            <div class="content-container animate-on-scroll fade-in">
+                <h2 class="section-title text-gradient">Il Mio Percorso</h2>
+                <p>[Placeholder: Espandi qui la tua storia. Usa paragrafi brevi e coinvolgenti. Parla delle tue motivazioni, delle sfide, delle tecnologie che ami usare, della visione di Upzeo. Esempio: Fin da giovane, la logica e la creatività del codice mi hanno affascinato... Dopo anni di esperienza [descrivi brevemente], ho deciso di fondare Upzeo per colmare un vuoto che vedevo nel mercato: un servizio di sviluppo web per PMI che fosse veramente su misura, trasparente e orientato ai risultati...]</p>
+                <p>[Placeholder: Aggiungi un altro paragrafo sulla tua filosofia di lavoro o sui valori fondamentali di Upzeo.]</p>
+            </div>
+        </section>
+
+        <section id="contatti-info-anchor" class="contact-info section">
+            <div class="content-container">
+                <h2 class="section-title animate-on-scroll fade-in">Pronto a Iniziare?</h2>
+                <p class="animate-on-scroll fade-in delay-1">Hai un progetto in mente o semplicemente vuoi saperne di più? Ecco come puoi contattarmi:</p>
+                <div class="contact-grid">
+                    <div class="contact-card animate-on-scroll fade-in delay-2">
+                        <i class="contact-icon icon-email"></i> <h3>Email</h3>
+                        <p>Il modo migliore per richieste dettagliate.</p>
+                        <a href="mailto:[la-tua-email@upzeo.example.com]" class="contact-link">[la-tua-email@upzeo.example.com]</a>
+                    </div>
+                    <div class="contact-card animate-on-scroll fade-in delay-3">
+                        <i class="contact-icon icon-phone"></i> <h3>Telefono / WhatsApp</h3>
+                        <p>Per una discussione rapida o un primo contatto.</p>
+                        <a href="tel:[+391234567890]" class="contact-link">[+39 123 456 7890]</a>
+                    </div>
+                    <div class="contact-card animate-on-scroll fade-in delay-4">
+                        <i class="contact-icon icon-linkedin"></i> <h3>LinkedIn</h3>
+                        <p>Connettiamoci e segui gli aggiornamenti.</p>
+                        <a href="[link-tuo-linkedin]" target="_blank" rel="noopener noreferrer" class="contact-link">Profilo LinkedIn</a>
+                    </div>
+                     </div>
+                 </div>
+        </section>
+
+    </main>
+
+    <footer class="glass-footer section">
+        <div class="content-container footer-content">
+            <p>&copy; <span id="current-year"></span> Upzeo di [Il tuo Nome]. Tutti i diritti riservati.</p>
+            <p>P.IVA [La tua Partita IVA] | <a href="privacy.html">Privacy Policy</a> | <a href="cookies.html">Cookie Policy</a></p> </div>
+    </footer>
+    <button id="back-to-top" aria-label="Torna su" class="hidden smooth-scroll">&#8679;</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script> <script src="script-contatti.js"></script>
+
+</body>
+</html>
