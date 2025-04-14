@@ -60,6 +60,7 @@ body {
     display: flex;
     gap: 2rem;
     list-style: none;
+    bottom-left: 10 px;
 }
 
 .nav-menu a {
