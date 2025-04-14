@@ -2,11 +2,10 @@
 :root {
   --primary: #00FF85; /* Neon Verde */
   --secondary: #00D4FF; /* Neon Azzurro */
-  --background: #f5f5f5;
-  --text-light: #2b2b2b;
+  --background: #121212; /* Sfondo scuro */
+  --text-light: #e0e0e0; /* Testo chiaro */
   --text-dark: #1a1a1a;
-  --accent-shadow: rgba(0, 255, 133, 0.6);
-  --transition: all 0.3s ease-in-out;
+  --transition: all 0.3s ease;
 }
 
 /* Reset */
@@ -16,6 +15,7 @@
   box-sizing: border-box;
   scroll-behavior: smooth;
 }
+
 body {
   font-family: 'Space Grotesk', sans-serif;
   background-color: var(--background);
@@ -24,45 +24,41 @@ body {
 }
 
 /* Navbar */
-.header {
+.navbar {
   position: sticky;
   top: 0;
-  background-color: #fff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  background-color: #1a1a1a;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   z-index: 100;
 }
-.header .header-container {
+.navbar .container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
 }
 .logo {
   font-size: 2rem;
   font-weight: 700;
   color: var(--primary);
+  text-transform: uppercase;
   letter-spacing: 2px;
   cursor: pointer;
 }
-.nav {
+.nav-links {
   display: flex;
 }
-.nav-list {
-  list-style: none;
-  display: flex;
-}
-.nav-list li {
-  margin: 0 15px;
-}
-.nav-list a {
+.nav-links a {
+  color: var(--text-light);
+  margin: 0 20px;
   text-decoration: none;
-  color: var(--text-dark);
-  font-weight: 500;
+  font-size: 1rem;
   transition: color var(--transition);
 }
-.nav-list a:hover {
+.nav-links a:hover {
   color: var(--primary);
 }
+/* Mobile menu */
 .hamburger {
   display: none;
   font-size: 30px;
@@ -72,7 +68,7 @@ body {
   display: none;
   flex-direction: column;
   align-items: center;
-  background-color: #fff;
+  background-color: #1a1a1a;
   position: fixed;
   top: 0;
   left: 0;
@@ -82,10 +78,14 @@ body {
   z-index: 200;
 }
 .mobile-menu a {
-  color: var(--text-dark);
-  font-size: 22px;
+  color: var(--text-light);
   margin: 20px 0;
   text-decoration: none;
+  font-size: 1.5rem;
+  transition: color var(--transition);
+}
+.mobile-menu a:hover {
+  color: var(--primary);
 }
 
 /* Hero Section */
@@ -99,84 +99,82 @@ body {
   text-align: center;
   overflow: hidden;
 }
-.hero::after {
-  content: '';
+.hero-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(255,255,255,0.2);
+  background: rgba(0, 0, 0, 0.5);
 }
 .hero-content {
   position: relative;
   z-index: 2;
   max-width: 800px;
   padding: 20px;
-  background: rgba(255,255,255,0.8);
-  border-radius: 10px;
-  box-shadow: 0 0 20px var(--accent-shadow);
+  animation: fadeIn 1.5s ease-out;
 }
 .hero-content h1 {
-  font-size: 2.8rem;
-  color: var(--text-dark);
+  font-size: 3.5rem;
+  font-weight: 700;
   margin-bottom: 15px;
+  color: var(--text-light);
 }
 .hero-content p {
-  font-size: 1.2rem;
-  color: var(--text-dark);
-  margin-bottom: 20px;
+  font-size: 1.3rem;
+  margin-bottom: 25px;
+  color: var(--text-light);
 }
 .cta-button {
   background-color: var(--primary);
-  color: #fff;
+  color: var(--background);
   padding: 12px 30px;
   border-radius: 50px;
   text-decoration: none;
   font-weight: bold;
-  transition: background-color var(--transition), transform var(--transition);\n}
+  transition: background-color var(--transition), transform var(--transition);
+}
 .cta-button:hover {
   background-color: var(--secondary);
   transform: scale(1.05);
 }
 
-/* Side Text Animations */
-.side-text-left, .side-text-right {
+/* Side Text - Gesture Elements */
+.side-text {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   font-size: 1.5rem;
-  color: var(--text-dark);
-  opacity: 0.6;
-  animation: slideIn 4s ease-in-out infinite alternate;
+  color: var(--text-light);
+  opacity: 0.8;
+  pointer-events: none;
 }
-.side-text-left {
+.left-text {
   left: 10px;
+  animation: slideInLeft 4s ease-in-out infinite;
 }
-.side-text-right {
+.right-text {
   right: 10px;
+  animation: slideInRight 4s ease-in-out infinite;
 }
-@keyframes slideIn {
-  from { opacity: 0.4; transform: translateY(-50%) translateX(0); }
-  to   { opacity: 1; transform: translateY(-50%) translateX(20px); }
+@keyframes slideInLeft {
+  0% { opacity: 0.5; transform: translateX(-100%) translateY(-50%); }
+  50% { opacity: 1; transform: translateX(0) translateY(-50%); }
+  100% { opacity: 0.5; transform: translateX(-100%) translateY(-50%); }
 }
-
-/* Section Headers */
-.section-header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-.section-header h2 {
-  font-size: 2.5rem;
-  color: var(--text-dark);
-  margin-bottom: 10px;
-}
-.section-header p {
-  font-size: 1.1rem;
-  color: var(--text-dark);
+@keyframes slideInRight {
+  0% { opacity: 0.5; transform: translateX(100%) translateY(-50%); }
+  50% { opacity: 1; transform: translateX(0) translateY(-50%); }
+  100% { opacity: 0.5; transform: translateX(100%) translateY(-50%); }
 }
 
 /* Services Section */
 .services {
   padding: 60px 20px;
-  background-color: #ffffff;
+  background-color: #1a1a1a;
+  text-align: center;
+}
+.services h2 {
+  font-size: 2.5rem;
+  color: var(--text-light);
+  margin-bottom: 20px;
 }
 .service-list {
   display: flex;
@@ -185,82 +183,94 @@ body {
   gap: 20px;
 }
 .service-card {
-  background-color: #fff;
+  background-color: #2a2a2a;
   padding: 30px;
   border-radius: 10px;
   width: 30%;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-  transition: transform var(--transition);\n  text-align: center;\n}
-.service-card:hover {\n  transform: translateY(-10px);\n}
-.service-card h3 {\n  font-size: 1.5rem;\n  margin-bottom: 10px;\n  color: var(--text-dark);\n}
-.service-card p {\n  font-size: 1rem;\n  color: var(--text-dark);\n}
-
-/* Portfolio Section */
-.portfolio {
-  padding: 60px 20px;
-  background-color: #ffffff;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  transition: transform 0.3s ease;
   text-align: center;
 }
-.portfolio-items {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  gap: 20px;
+.service-card:hover {
+  transform: translateY(-10px);
 }
-.animation-card {
-  width: 45%;
-  background-color: var(--primary);
-  height: 200px;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  transition: transform var(--transition);\n  box-shadow: 0 5px 15px rgba(0,0,0,0.1);\n}
-.animation-card:hover {\n  transform: scale(1.05);\n}
-.animation-box {\n  width: 80%;\n  height: 60%;\n  border-radius: 10px;\n  background: linear-gradient(45deg, var(--primary), var(--secondary));\n}
-.animation-card h3 {\n  margin-top: 15px;\n  font-size: 1.2rem;\n  color: #fff;\n}
+.service-card h3 {
+  font-size: 1.5rem;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+.service-card p {
+  font-size: 1rem;
+  color: var(--text-light);
+}
+
+/* Portfolio Section - Rimosso (non presenti progetti pregressi) */
 
 /* Contact Section */
 .contact {
   padding: 60px 20px;
-  background-color: #ffffff;
+  background-color: #1a1a1a;
   text-align: center;
 }
-.contact-info p {\n  font-size: 1.2rem;\n  color: var(--text-dark);\n  margin-bottom: 20px;\n}
-.contact-form {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n}
-#contact-form input, #contact-form textarea {\n  width: 80%;\n  max-width: 500px;\n  padding: 12px;\n  margin: 10px 0;\n  border-radius: 5px;\n  border: 1px solid var(--border-color);\n  font-size: 1rem;\n}
-#contact-form button {\n  background-color: var(--primary);\n  color: #fff;\n  padding: 12px 20px;\n  border: none;\n  border-radius: 8px;\n  font-size: 1.2rem;\n  cursor: pointer;\n  transition: background-color var(--transition);\n}\n#contact-form button:hover {\n  background-color: var(--secondary);\n}\n\n/* Footer */\n.footer {\n  padding: 20px;\n  text-align: center;\n  background-color: #333;\n  color: var(--text-light);\n}\n\n/* Media Query per Mobile */\n@media screen and (max-width: 768px) {\n  .nav-links { display: none; }\n  .hamburger { display: block; }\n  .mobile-menu { display: none; }\n  .mobile-menu.show { display: flex; flex-direction: column; align-items: center; }\n\n  .service-card, .animation-card { width: 90%; }\n  .hero-content h1 { font-size: 2.5rem; }\n  .hero-content p { font-size: 1.2rem; }\n  .nav-links a { margin: 0 10px; font-size: 0.9rem; }\n}\n```
-
----
-
-**script.js**
-```javascript
-// Gestione del menu mobile
-function toggleMenu() {
-    const mobileMenu = document.getElementById('mobileMenu');
-    mobileMenu.classList.toggle('show');
+.contact h2 {
+  font-size: 2.5rem;
+  color: var(--text-light);
+  margin-bottom: 20px;
+}
+.contact-info p {
+  font-size: 1.2rem;
+  color: var(--text-light);
+  margin-bottom: 20px;
+}
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#contact-form input, #contact-form textarea {
+  width: 80%;
+  max-width: 500px;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  font-size: 1rem;
+}
+#contact-form button {
+  background-color: var(--primary);
+  color: var(--background);
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+#contact-form button:hover {
+  background-color: var(--secondary);
 }
 
-document.querySelector('.hamburger').addEventListener('click', toggleMenu);
+/* Footer */
+.footer {
+  padding: 20px;
+  text-align: center;
+  background-color: #000;
+  color: var(--text-light);
+}
 
-// Navigazione fluida per link interni
-document.querySelectorAll('.nav-list a, .mobile-menu a, .cta-button').forEach(link => {
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            window.scrollTo({
-                top: target.offsetTop - 80,
-                behavior: 'smooth'
-            });
-        }
-    });
-});
+/* Animazioni */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
-// Gestione del form di contatto
-document.getElementById('contact-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    alert('Grazie per averci contattato! Ti risponderemo al più presto.');
-    this.reset();
-});
+/* Media Query per Mobile */
+@media screen and (max-width: 768px) {
+  .nav-links { display: none; }
+  .hamburger { display: block; }
+  .service-list, .portfolio-items { flex-direction: column; align-items: center; }
+  .service-card, .animation-card { width: 90%; }
+  .hero-content h1 { font-size: 2.5rem; }
+  .hero-content p { font-size: 1.2rem; }
+  .side-text { display: none; }
+}
