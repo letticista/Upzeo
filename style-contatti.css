@@ -1,0 +1,446 @@
+/* --- STILE SPECIFICO PER CONTATTI.HTML --- */
+
+/* --- Variabili Globali --- */
+:root {
+    --primary: #00ffe7;
+    --secondary: #ff00d4;
+    --accent: #f8ff00; /* Nuovo colore accento */
+    --dark-bg: #101012; /* Sfondo leggermente più chiaro come richiesto */
+    --dark-card: #1a1a1e; /* Sfondo per card/sezioni */
+    --text-light: #e0e0e0;
+    --text-medium: #a0a0a0;
+    --text-dark: #111;
+    --glass-bg: rgba(26, 26, 30, 0.75); /* Sfondo per effetto vetro */
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --gradient-main: linear-gradient(45deg, var(--primary), var(--secondary));
+    --gradient-accent: linear-gradient(45deg, var(--secondary), var(--accent));
+    --font-main: 'Inter', sans-serif;
+    --transition-speed: 0.4s;
+    --blur-amount: 12px;
+}
+
+/* --- Reset Base & Body --- */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth; /* Abilita smooth scroll nativo */
+    scrollbar-color: var(--primary) var(--dark-card); /* Styling scrollbar Firefox */
+    scrollbar-width: thin;
+}
+
+/* Styling scrollbar Webkit */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--dark-card); }
+::-webkit-scrollbar-thumb { background-color: var(--primary); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--secondary); }
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--dark-bg);
+    color: var(--text-light);
+    line-height: 1.7;
+    overflow-x: hidden; /* Previene scroll orizzontale */
+}
+
+/* --- Sfondo 3D Vanta --- */
+#3d-background-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: -1; /* Dietro tutto */
+    overflow: hidden;
+}
+#vanta-canvas canvas { /* Assicura che il canvas riempia il div */
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+
+/* --- Header Replicato (Stili simili a index) --- */
+.glass-header {
+    position: fixed;
+    width: 100%;
+    padding: 1rem 5%; /* Padding ridotto */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-amount));
+    border-bottom: 1px solid var(--glass-border);
+    z-index: 1000;
+    transition: background-color var(--transition-speed) ease;
+}
+/* Header che cambia leggermente allo scroll (opzionale) */
+.glass-header.scrolled {
+    background: rgba(16, 16, 18, 0.85); /* Più opaco allo scroll */
+}
+
+.logo {
+    font-size: clamp(1.8rem, 4vw, 2.2rem);
+    font-weight: 700;
+    background: var(--gradient-main);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-decoration: none;
+    transition: filter var(--transition-speed) ease;
+}
+.logo:hover {
+    filter: brightness(1.2);
+}
+
+.navbar { display: flex; align-items: center; }
+
+.nav-menu {
+    display: flex;
+    gap: 1.5rem; /* Spazio ridotto */
+    list-style: none;
+    align-items: center;
+}
+
+.nav-menu a, .dropdown-btn {
+    color: var(--text-light);
+    text-decoration: none;
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    transition: all var(--transition-speed) ease;
+    position: relative;
+    font-weight: 600;
+    background: none; border: none; font-family: inherit; font-size: inherit; cursor: pointer;
+}
+/* Effetto underline animato */
+.nav-menu a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: var(--gradient-main);
+    transition: width var(--transition-speed) ease;
+}
+.nav-menu a:hover::after,
+.nav-menu a.active::after {
+    width: 80%; /* Larghezza underline */
+}
+.nav-menu a:hover, .dropdown-btn:hover,
+.nav-menu a.active {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Dropdown (Stili Replicati/Adattati) */
+.dropdown { position: relative; }
+.dropdown-btn { display: flex; align-items: center; gap: 5px; }
+.dropdown-content {
+    position: absolute;
+    top: calc(100% + 10px); /* Leggermente staccato */
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--dark-card);
+    min-width: 220px;
+    padding: 0.8rem 0;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-speed) ease, visibility var(--transition-speed) ease, top var(--transition-speed) ease;
+    z-index: 1001;
+    list-style: none;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+.dropdown-content.active, /* Mostra con JS */
+.dropdown:hover .dropdown-content { /* Mostra con Hover (desktop) */
+    opacity: 1;
+    visibility: visible;
+    top: calc(100% + 5px); /* Avvicina all'apertura */
+}
+.dropdown-content a {
+    display: block;
+    padding: 0.8rem 1.5rem;
+    color: var(--text-medium);
+    white-space: nowrap;
+}
+.dropdown-content a:hover {
+    background: var(--primary);
+    color: var(--text-dark);
+}
+.dropdown-content a::after { display: none; } /* No underline nel dropdown */
+
+/* Menu Toggle Mobile (Replicato/Adattato) */
+.menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.5rem; z-index: 1002; position: relative; }
+.menu-toggle .bar { display: block; width: 25px; height: 3px; background: white; margin: 5px 0; border-radius: 3px; transition: all var(--transition-speed) ease-in-out; }
+.menu-toggle.active .bar:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+.menu-toggle.active .bar:nth-child(2) { opacity: 0; }
+.menu-toggle.active .bar:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+
+/* --- Stili Generali Sezioni & Contenitori --- */
+.section {
+    padding: 6rem 5%; /* Padding standard sezioni */
+    position: relative; /* Per context z-index se necessario */
+}
+.content-container {
+    max-width: 1100px; /* Larghezza massima standard */
+    margin: 0 auto;
+}
+.text-gradient {
+    background: var(--gradient-main);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.section-title {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin-bottom: 1rem;
+    color: white; /* Titoli chiari di default */
+}
+.section-subtitle {
+    font-size: clamp(1.1rem, 3vw, 1.3rem);
+    color: var(--primary); /* Sottotitoli con colore primario */
+    font-weight: 600;
+    margin-bottom: 2rem;
+}
+
+/* --- Hero Section Specifica --- */
+.contact-hero {
+    min-height: 70vh; /* Altezza minima */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding-top: 120px; /* Spazio per header */
+    background: linear-gradient(rgba(16, 16, 18, 0.8), rgba(16, 16, 18, 0.95)), /* Sovrapposizione scura */
+                url('placeholder-background-hero.jpg') no-repeat center center/cover; /* Immagine di sfondo opzionale */
+}
+.hero-title {
+    font-size: clamp(2.8rem, 8vw, 5rem);
+    color: white;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 15px rgba(0, 255, 231, 0.5); /* Ombra luminosa */
+}
+.contact-hero .hero-subtitle { /* Stile specifico per sottotitolo hero */
+    font-size: clamp(1.1rem, 3vw, 1.4rem);
+    color: var(--text-medium);
+    max-width: 700px;
+    margin-bottom: 2.5rem;
+}
+.cta-button { /* Stile Pulsante Call-to-Action */
+    display: inline-block;
+    padding: 1rem 2.5rem;
+    background: var(--gradient-main);
+    color: var(--text-dark);
+    font-weight: 700;
+    border-radius: 50px;
+    text-decoration: none;
+    transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+    box-shadow: 0 5px 20px rgba(0, 255, 231, 0.3);
+}
+.cta-button:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 10px 30px rgba(0, 255, 231, 0.5);
+}
+
+/* --- Sezione About Me (Layout Grid) --- */
+.about-me { background-color: var(--dark-card); } /* Sfondo leggermente diverso */
+.about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr; /* Colonna immagine più stretta */
+    gap: 4rem;
+    align-items: center;
+}
+.about-image img {
+    width: 100%;
+    max-width: 350px; /* Limita dimensione immagine */
+    height: auto;
+    border-radius: 10px;
+    border: 3px solid var(--primary);
+    box-shadow: 0 0 30px rgba(0, 255, 231, 0.2);
+    display: block; /* Rimuove spazio sotto immagine */
+    margin: 0 auto; /* Centra se la colonna è più larga */
+}
+.about-text .section-title { margin-bottom: 0.5rem; }
+.about-text .section-subtitle { margin-bottom: 1.5rem; }
+.about-text p { margin-bottom: 1rem; color: var(--text-medium); }
+
+/* --- Sezione My Story --- */
+.my-story { border-top: 1px solid var(--glass-border); } /* Separatore */
+.my-story .section-title { text-align: center; margin-bottom: 2.5rem; }
+.my-story p {
+    max-width: 800px; /* Limita larghezza testo storia */
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 1.5rem;
+    text-align: justify; /* Testo giustificato */
+    color: var(--text-medium);
+}
+
+/* --- Sezione Contact Info (Grid per Card) --- */
+.contact-info { background-color: var(--dark-card); }
+.contact-info .section-title { text-align: center; }
+.contact-info > .content-container > p { /* Paragrafo introduttivo */
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto 3rem auto;
+    color: var(--text-medium);
+}
+.contact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Griglia responsiva */
+    gap: 2rem;
+}
+.contact-card {
+    background: var(--dark-bg); /* Sfondo card più scuro */
+    padding: 2rem 1.5rem;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    text-align: center;
+    transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+.contact-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border-color: var(--primary);
+}
+.contact-icon {
+    font-size: 2.5rem; /* Dimensione icona */
+    color: var(--primary);
+    margin-bottom: 1rem;
+    display: block;
+    /* Qui dovrai aggiungere gli stili specifici per la tua libreria di icone */
+}
+.contact-card h3 {
+    font-size: 1.3rem;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+.contact-card p { /* Descrizione nella card */
+    color: var(--text-medium);
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+.contact-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    word-break: break-word;
+    transition: color var(--transition-speed) ease;
+}
+.contact-link:hover {
+    color: var(--secondary);
+}
+
+/* --- Footer Replicato --- */
+.glass-footer {
+    padding: 2rem 5%;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-amount));
+    border-top: 1px solid var(--glass-border);
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-medium);
+}
+.footer-content p { margin-bottom: 0.5rem; }
+.footer-content a { color: var(--text-medium); text-decoration: none; transition: color var(--transition-speed) ease; }
+.footer-content a:hover { color: var(--primary); }
+#current-year { font-weight: bold; }
+
+/* --- Bottone Torna Su --- */
+#back-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--primary);
+    color: var(--text-dark);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: opacity var(--transition-speed) ease, visibility var(--transition-speed) ease, transform var(--transition-speed) ease;
+}
+#back-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+#back-to-top:hover { background: var(--secondary); }
+
+/* --- Animazioni di Scroll (da attivare con JS) --- */
+.animate-on-scroll {
+    opacity: 0;
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+.animate-on-scroll.fade-in { transform: translateY(30px); }
+.animate-on-scroll.slide-in-left { transform: translateX(-50px); }
+.animate-on-scroll.slide-in-right { transform: translateX(50px); }
+
+/* Stili quando l'elemento diventa visibile (classe aggiunta da JS) */
+.animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translate(0, 0); /* Resetta trasformazione */
+}
+/* Ritardi animazione */
+.animate-on-scroll.delay-1 { transition-delay: 0.2s; }
+.animate-on-scroll.delay-2 { transition-delay: 0.4s; }
+.animate-on-scroll.delay-3 { transition-delay: 0.6s; }
+.animate-on-scroll.delay-4 { transition-delay: 0.8s; }
+
+
+/* --- Media Queries per Responsiveness --- */
+@media (max-width: 992px) {
+    .about-grid {
+        grid-template-columns: 1fr; /* Stack su tablet */
+        gap: 2rem;
+        text-align: center;
+    }
+    .about-image { order: -1; } /* Immagine sopra su mobile */
+    .about-image img { max-width: 280px; }
+    .contact-grid { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+}
+
+@media (max-width: 768px) {
+    .section { padding: 4rem 5%; } /* Padding ridotto */
+    .nav-menu { /* Menu mobile */
+        display: none; position: fixed; top: 0; right: -100%; /* Nascosto */
+        width: 80%; max-width: 300px; height: 100vh; background: var(--dark-card);
+        flex-direction: column; padding: 6rem 2rem 2rem; gap: 1.5rem;
+        transition: right 0.4s ease-in-out; z-index: 1001; overflow-y: auto;
+        border-left: 1px solid var(--glass-border);
+        box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+    }
+    .nav-menu.active { display: flex; right: 0; /* Mostra */ }
+    .menu-toggle { display: block; } /* Mostra hamburger */
+
+    /* Dropdown nel menu mobile */
+    .nav-menu .dropdown-content {
+        position: static; opacity: 1; visibility: visible; background: none;
+        border: none; box-shadow: none; padding: 0 0 0 1rem; min-width: auto;
+        display: none; /* Nascosto di default */ margin-top: 0.5rem;
+    }
+    .nav-menu .dropdown-content.active { display: block; } /* Mostra con JS */
+    .nav-menu .dropdown-content a { color: var(--text-medium); padding: 0.5rem 1rem; }
+    .nav-menu .dropdown-content a:hover { background: var(--primary); color: var(--text-dark); }
+
+    .hero-title { font-size: clamp(2.2rem, 10vw, 3.5rem); }
+    .contact-hero .hero-subtitle { font-size: clamp(1rem, 4vw, 1.2rem); }
+    .cta-button { padding: 0.8rem 2rem; }
+    .about-grid { gap: 1.5rem; }
+    .about-image img { max-width: 220px; }
+    .contact-grid { grid-template-columns: 1fr; } /* Una colonna su mobile */
+    #back-to-top { width: 45px; height: 45px; font-size: 1.3rem; }
+}
