@@ -16,6 +16,10 @@ let touchEndX = 0;
 document.body.addEventListener('touchstart', function (e) {
     touchStartX = e.changedTouches[0].screenX;
 });
+function toggleMenu() {
+    const menu = document.getElementById('mobile-menu');
+    menu.classList.toggle('show');
+}
 
 document.body.addEventListener('touchend', function (e) {
     touchEndX = e.changedTouches[0].screenX;
@@ -33,7 +37,3 @@ document.getElementById('contact-form').addEventListener('submit', function (e) 
     e.preventDefault();
     alert('Messaggio inviato! Ti risponderemo presto.');
 });
-function toggleMenu() {
-    const menu = document.getElementById('mobile-menu');
-    menu.classList.toggle('show');
-}
