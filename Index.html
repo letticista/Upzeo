@@ -3,77 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upzeo | Trasformazione Digitale Avanzata</title>
-  <meta name="description" content="Siti web 3D performanti che aumentano conversioni del 200%">
+  <title>Upzeo | Soluzioni Web 3D Avanzate</title>
+  <meta name="description" content="Creiamo esperienze digitali immersive che aumentano il engagement del 300%">
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" as="script">
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js" as="script">
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js" as="script">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="3d-bg"></div>
+  <div id="3d-background"></div>
 
-  <header class="glass-nav">
-    <div class="logo">UPZ<span class="logo-accent">EO</span></div>
-    <nav>
-      <div class="menu-toggle">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-      <ul class="nav-links">
-        <li><a href="#home">Home</a></li>
+  <header class="glass-header">
+    <div class="logo">UPZ<span class="logo-gradient">EO</span></div>
+    <nav class="navbar">
+      <button class="menu-toggle" aria-label="Menu">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+      <ul class="nav-menu">
+        <li><a href="#home" class="active">Home</a></li>
         <li><a href="#servizi">Servizi</a></li>
         <li class="dropdown">
-          <a>Soluzioni ▼</a>
-          <ul class="dropdown-menu">
+          <button class="dropdown-btn">Soluzioni <span class="arrow">▼</span></button>
+          <ul class="dropdown-content">
             <li><a href="#web3d">Web 3D</a></li>
             <li><a href="#ecommerce">E-commerce</a></li>
           </ul>
         </li>
-        <li><a href="#contatti">Contattaci</a></li>
+        <li><a href="#contatti">Contatti</a></li>
       </ul>
     </nav>
   </header>
 
   <main>
-    <section id="hero">
-      <div class="hero-content">
-        <h1>Il tuo sito web <span class="text-3d">prende vita</span></h1>
-        <p class="hero-subtitle">Tecnologie immersive che <strong>aumentano del 300%</strong> il tempo di permanenza</p>
-        <a href="#contatti" class="cta-btn">Richiedi demo gratuita →</a>
+    <section id="hero" class="section">
+      <div class="hero-container">
+        <h1 class="hero-title">Trasformiamo il tuo <span class="text-3d">business digitale</span></h1>
+        <p class="hero-subtitle">Tecnologie avanzate che <strong>aumentano le conversioni del 250%</strong></p>
+        <a href="#contatti" class="cta-button">Richiedi consulenza →</a>
       </div>
-      <div class="hero-stats">
+      
+      <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-number" data-count="178">0</div>
-          <div class="stat-label">Progetti completati</div>
+          <div class="stat-number" data-count="184">0</div>
+          <div class="stat-label">Clienti soddisfatti</div>
         </div>
         <div class="stat-card">
-          <div class="stat-number" data-count="94">0</div>
-          <div class="stat-label">% Soddisfazione</div>
+          <div class="stat-number" data-count="97">0</div>
+          <div class="stat-label">% Retention</div>
         </div>
       </div>
     </section>
 
-    <section id="servizi">
-      <h2>Oltre il <span class="text-highlight">solito sito web</span></h2>
-      <div class="grid-3d">
-        <div class="service-3d">
-          <div class="3d-icon" id="icon1"></div>
-          <h3>Architetture 3D</h3>
-          <p>Navigazioni spaziali che guidano l'utente all'azione</p>
-        </div>
-        <div class="service-3d">
-          <div class="3d-icon" id="icon2"></div>
-          <h3>Realtà aumentata</h3>
+    <section id="servizi" class="section">
+      <h2>Le nostre <span class="highlight">soluzioni</span></h2>
+      <div class="services-grid">
+        <article class="service-card">
+          <div class="card-3d" id="service-1"></div>
+          <h3>Experience 3D</h3>
+          <p>Navigazioni immersive che riducono il bounce rate</p>
+        </article>
+        <article class="service-card">
+          <div class="card-3d" id="service-2"></div>
+          <h3>Realtà Aumentata</h3>
           <p>Anteprime prodotti direttamente dal browser</p>
-        </div>
+        </article>
       </div>
     </section>
   </main>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.waves.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
