@@ -1,131 +1,75 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upzeo | Siti Web per PMI</title>
-  <meta name="description" content="Soluzioni web avanzate per piccole e medie imprese. Upzeo trasforma la tua presenza online con design futuristici e interazioni dinamiche.">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upzeo - Futuristic Web Solutions</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="container">
-      <div class="logo">Upzeo</div>
-      <ul class="nav-links">
-        <li><a href="#hero" class="nav-link">Home</a></li>
-        <li><a href="#services" class="nav-link">Servizi</a></li>
-        <li><a href="#contact" class="nav-link">Contatti</a></li>
-      </ul>
-      <div class="hamburger" id="hamburger">&#9776;</div>
-    </div>
-  </nav>
-  <div class="mobile-menu" id="mobileMenu">
-    <a href="#hero" class="mobile-link">Home</a>
-    <a href="#services" class="mobile-link">Servizi</a>
-    <a href="#contact" class="mobile-link">Contatti</a>
+  <div id="vanta-bg">
+    <header class="main-header">
+      <div class="logo">Upzeo<span>.</span></div>
+      <nav>
+        <ul>
+          <li><a href="#services">Servizi</a></li>
+          <li><a href="#about">Chi siamo</a></li>
+          <li><a href="#contact">Contattaci</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h1 class="hero-title">Il Futuro del Web è Qui</h1>
+      <p class="hero-subtitle">Siti dinamici, intelligenti e indimenticabili.</p>
+      <a href="#contact" class="cta">Inizia Ora</a>
+    </section>
   </div>
 
-  <header>
-    <section id="hero" class="hero">
-      <div class="hero-overlay"></div>
-      <div class="hero-content">
-        <h1 class="headline">Siti Web che Trasformano il Tuo Business</h1>
-        <p class="subheadline">Design futuristici ed interattivi, pensati per piccole e medie imprese. Siamo qui per farti emergere!</p>
-        <a href="#contact" class="cta-button">Richiedi Consulenza</a>
+  <section id="services" class="section">
+    <h2 class="section-title">Cosa Offriamo</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Design Interattivo</h3>
+        <p>UI/UX avanzata con animazioni 3D per stupire i tuoi clienti.</p>
       </div>
-      <div class="side-text left-text">Innovazione Reale</div>
-      <div class="side-text right-text">Crescita Garantita</div>
-    </section>
-  </header>
-
-  <section id="services" class="services">
-    <div class="section-header">
-      <h2>Servizi</h2>
-      <p>Le nostre soluzioni web personalizzate danno vita alle idee della tua azienda.</p>
-    </div>
-    <div class="service-list">
-      <div class="service-card">
-        <h3>Sviluppo Web Custom</h3>
-        <p>Coding moderno e performance elevate per un sito su misura.</p>
+      <div class="card">
+        <h3>Sviluppo Responsive</h3>
+        <p>Compatibilità totale con mobile, desktop e tablet.</p>
       </div>
-      <div class="service-card">
-        <h3>Design UI/UX</h3>
-        <p>Interfacce intuitive e un design che lascia il segno.</p>
-      </div>
-      <div class="service-card">
-        <h3>SEO & Digital Marketing</h3>
-        <p>Visibilità garantita e strategie digitali che fanno crescere il traffico.</p>
+      <div class="card">
+        <h3>Performance Estrema</h3>
+        <p>Ottimizzazione SEO, caricamenti ultra-rapidi e codice pulito.</p>
       </div>
     </div>
   </section>
 
-  <section id="contact" class="contact">
-    <div class="section-header">
-      <h2>Contattaci</h2>
-      <p>Inviaci una richiesta e scopri come possiamo rivoluzionare il tuo business online.</p>
-    </div>
-    <form id="contact-form" class="contact-form">
-      <input type="text" name="name" placeholder="Il tuo nome" required>
-      <input type="email" name="email" placeholder="La tua email" required>
-      <textarea name="message" placeholder="Il tuo messaggio" required></textarea>
-      <button type="submit" class="cta-button">Invia</button>
+  <section id="about" class="section">
+    <h2 class="section-title">Chi è Upzeo</h2>
+    <p class="about-text">
+      Una startup guidata da visione, tecnologia e passione. Offriamo soluzioni web per piccole e medie imprese che vogliono distinguersi.
+    </p>
+  </section>
+
+  <section id="contact" class="section">
+    <h2 class="section-title">Contattaci</h2>
+    <form class="contact-form">
+      <input type="text" placeholder="Nome" required />
+      <input type="email" placeholder="Email" required />
+      <textarea placeholder="Messaggio" required></textarea>
+      <button type="submit">Invia</button>
     </form>
   </section>
 
-  <footer class="footer">
-    <p>&copy; 2025 Upzeo | CEO: Davide Salis. Tutti i diritti riservati.</p>
+  <footer>
+    <p>© 2025 Upzeo. Tutti i diritti riservati.</p>
   </footer>
 
-  <script>
-    function toggleMenu() {
-      const mobileMenu = document.getElementById('mobileMenu');
-      mobileMenu.classList.toggle('show');
-    }
-
-    document.getElementById('hamburger').addEventListener('click', toggleMenu);
-
-    document.querySelectorAll('.nav-links a, .mobile-menu a, .cta-button').forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const targetID = this.getAttribute('href');
-        const targetElement = document.querySelector(targetID);
-        if (targetElement) {
-          window.scrollTo({
-            top: targetElement.offsetTop - 70,
-            behavior: 'smooth'
-          });
-        }
-        const mobileMenu = document.getElementById('mobileMenu');
-        if (mobileMenu.classList.contains('show')) {
-          mobileMenu.classList.remove('show');
-        }
-      });
-    });
-
-    let touchStartX = 0;
-    let touchEndX = 0;
-    const sensitivity = 50;
-
-    document.addEventListener('touchstart', function(e) {
-      touchStartX = e.changedTouches[0].screenX;
-    });
-
-    document.addEventListener('touchend', function(e) {
-      touchEndX = e.changedTouches[0].screenX;
-      if (touchStartX - touchEndX > sensitivity) {
-        document.querySelectorAll('.side-text').forEach(el => el.style.display = 'none');
-      }
-      if (touchEndX - touchStartX > sensitivity) {
-        document.querySelectorAll('.side-text').forEach(el => el.style.display = 'block');
-      }
-    });
-
-    document.getElementById('contact-form').addEventListener('submit', function(e) {
-      e.preventDefault();
-      alert('Grazie per averci contattato! Ti risponderemo al più presto.');
-      this.reset();
-    });
-  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.fog.min.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
