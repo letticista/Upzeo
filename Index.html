@@ -1,85 +1,75 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upzeo | Web Solutions Avanzate</title>
-    
-    <!-- CSS -->
+    <title>Upzeo - Siti Web per PMI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    
-    <!-- Font Awesome per le icone -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Montserrat:wght@800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <a href="/" class="logo">Upzeo</a>
-            <div class="nav-links">
-                <a href="#services">Servizi</a>
-                <a href="#portfolio">Portfolio</a>
-                <a href="#about">Chi Siamo</a>
-                <a href="#contact" class="cta-button">Contatti</a>
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <div class="logo">Upzeo</div>
+                <div class="nav-links">
+                    <a href="#services">Servizi</a>
+                    <a href="#portfolio">Portfolio</a>
+                    <a href="#contact">Contatti</a>
+                </div>
             </div>
-        </div>
-    </nav>
-
-    <section id="hero" class="hero">
+        </nav>
+    </header>
+    
+    <section class="hero">
         <div class="hero-content">
-            <h1>Soluzioni Web Innovative</h1>
-            <p>Design futuristico, performance avanzate, e risultati straordinari</p>
-            <a href="#contact" class="cta-button">Contattaci</a>
+            <h1>La Tua Impresa Merita un Sito Web Futuristico</h1>
+            <p>Creiamo esperienze online innovative per piccole e medie imprese. Con il nostro approccio moderno, ti aiutiamo a crescere nel mondo digitale.</p>
+            <a href="#contact" class="cta-button">Inizia Ora</a>
         </div>
     </section>
 
     <section id="services" class="services">
-        <div class="section-header">
-            <h2>Servizi Premium</h2>
-        </div>
+        <h2>Servizi</h2>
         <div class="service-list">
             <div class="service-card">
-                <h3>Sviluppo Web</h3>
-                <p>Siti web personalizzati con performance di livello</p>
+                <h3>Design su Misura</h3>
+                <p>Progettiamo siti web unici, studiati appositamente per rispecchiare la tua azienda.</p>
             </div>
             <div class="service-card">
-                <h3>SEO Avanzato</h3>
-                <p>Visibilità su Google per far crescere il tuo business</p>
+                <h3>Ottimizzazione Mobile</h3>
+                <p>I nostri siti sono completamente responsive, perfetti su ogni dispositivo.</p>
             </div>
             <div class="service-card">
-                <h3>Design UI/UX</h3>
-                <p>Un'esperienza utente perfetta e accattivante</p>
+                <h3>Supporto Continuo</h3>
+                <p>Offriamo assistenza continua per garantire che il tuo sito funzioni sempre al meglio.</p>
             </div>
         </div>
     </section>
 
     <section id="portfolio" class="portfolio">
-        <div class="section-header">
-            <h2>Il Nostro Portfolio</h2>
-        </div>
+        <h2>Il Nostro Portfolio</h2>
         <div class="portfolio-items">
             <div class="portfolio-item">
                 <img src="images/project1.jpg" alt="Project 1">
-                <h3>Progetto 1</h3>
+                <h3>Progetto A</h3>
             </div>
             <div class="portfolio-item">
                 <img src="images/project2.jpg" alt="Project 2">
-                <h3>Progetto 2</h3>
+                <h3>Progetto B</h3>
             </div>
         </div>
     </section>
 
     <section id="contact" class="contact">
+        <h2>Contattaci</h2>
         <div class="contact-info">
-            <h2>Contattaci</h2>
-            <p>Sei pronto a lavorare con noi? Mandaci un messaggio!</p>
+            <p>Per domande o richieste, siamo a tua disposizione.</p>
         </div>
         <form id="contact-form">
-            <input type="text" name="name" placeholder="Il tuo nome" required>
-            <input type="email" name="email" placeholder="La tua email" required>
-            <textarea name="message" placeholder="Il tuo messaggio" required></textarea>
+            <input type="text" placeholder="Nome" required>
+            <input type="email" placeholder="Email" required>
+            <textarea placeholder="Messaggio" required></textarea>
             <button type="submit">Invia</button>
         </form>
     </section>
