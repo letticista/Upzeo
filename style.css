@@ -119,7 +119,7 @@ body {
 }
 .hero-content p {
   font-size: 1.3rem;
-  margin-bottom: 25px;
+  margin-bottom: 40px;
   color: var(--text-light);
 }
 .cta-button {
