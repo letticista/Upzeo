@@ -1,44 +1,55 @@
+// INIZIALIZZAZIONE 3D
 document.addEventListener('DOMContentLoaded', () => {
-  // MENU MOBILE
+  // Background 3D
+  VANTA.GLOBE({
+    el: "#3d-bg",
+    color: 0x00ffe7,
+    backgroundColor: 0x0a0a0a,
+    size: 1.2,
+    gyroControls: false
+  });
+
+  // Menu mobile
   const menuToggle = document.querySelector('.menu-toggle');
-  const navList = document.querySelector('.nav-list');
-  
-  menuToggle?.addEventListener('click', () => {
+  const navLinks = document.querySelector('.nav-links');
+
+  menuToggle.addEventListener('click', () => {
+    navLinks.classList.toggle('active');
     menuToggle.classList.toggle('active');
-    navList.classList.toggle('active');
-    
-    // Animazione hamburger menu
-    if(menuToggle.classList.contains('active')) {
-      menuToggle.children[0].style.transform = 'rotate(45deg) translate(5px, 5px)';
-      menuToggle.children[1].style.opacity = '0';
-      menuToggle.children[2].style.transform = 'rotate(-45deg) translate(5px, -5px)';
-    } else {
-      menuToggle.children[0].style.transform = 'none';
-      menuToggle.children[1].style.opacity = '1';
-      menuToggle.children[2].style.transform = 'none';
-    }
   });
 
-  // CHIUSURA MENU AL CLICK SU LINK
-  document.querySelectorAll('.nav-list a').forEach(link => {
-    link.addEventListener('click', () => {
-      navList.classList.remove('active');
-      menuToggle.classList.remove('active');
-    });
-  });
-
-  // DROPDOWN PER MOBILE
-  const dropdowns = document.querySelectorAll('.dropdown');
-  
-  dropdowns.forEach(dropdown => {
-    const link = dropdown.querySelector('a');
+  // Animazione numeri
+  const animateNumbers = () => {
+    const counters = document.querySelectorAll('.stat-number');
+    const speed = 200;
     
-    link.addEventListener('click', (e) => {
-      if(window.innerWidth <= 768) {
-        e.preventDefault();
-        const menu = dropdown.querySelector('.dropdown-menu');
-        menu.style.maxHeight = menu.style.maxHeight ? null : '300px';
+    counters.forEach(counter => {
+      const target = +counter.getAttribute('data-count');
+      const count = +counter.innerText;
+      const increment = target / speed;
+
+      if (count < target) {
+        counter.innerText = Math.ceil(count + increment);
+        setTimeout(animateNumbers, 1);
+      } else {
+        counter.innerText = target;
       }
     });
+  };
+
+  // Trigger animazioni quando visibili
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate');
+        if (entry.target.id === 'hero') {
+          animateNumbers();
+        }
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('section').forEach(section => {
+    observer.observe(section);
   });
 });
