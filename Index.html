@@ -1,68 +1,57 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upzeo | Web Solutions Avanzate</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/vanilla-tilt@1.7.2/dist/vanilla-tilt.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upzeo | Web Solutions Futuristiche</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">🚀 Upzeo</div>
-        <ul class="nav-links">
-            <li><a href="#about">Chi siamo</a></li>
-            <li><a href="#services">Servizi</a></li>
-            <li><a href="#contact">Contatti</a></li>
-        </ul>
+  <canvas id="background-canvas"></canvas>
+
+  <header class="navbar">
+    <div class="logo">UPZEO</div>
+    <nav>
+      <a href="#servizi">Servizi</a>
+      <a href="#chi-siamo">Chi siamo</a>
+      <a href="#contatti">Contatti</a>
     </nav>
+  </header>
 
-    <header class="hero">
-        <div class="hero-content">
-            <h1><span class="gradient-text">Soluzioni Web Futuristiche</span></h1>
-            <p>Progettiamo esperienze digitali che lasciano il segno</p>
-            <a href="#contact" class="cta-button">Inizia Ora</a>
-        </div>
-        <div class="parallax-bg"></div>
-    </header>
+  <section class="hero">
+    <h1>Soluzioni Web Futuristiche</h1>
+    <p>Innovazione. Performance. Design che lascia il segno.</p>
+    <a href="#contatti" class="btn-neon">Contattaci</a>
+  </section>
 
-    <section id="about" class="section">
-        <h2>Chi siamo</h2>
-        <p>Upzeo nasce dalla visione di <strong>Davide Salis</strong>, CEO e sviluppatore full-stack. Offriamo esperienze web che combinano estetica, performance e tecnologia.</p>
-    </section>
+  <section id="servizi" class="section">
+    <h2>I nostri servizi</h2>
+    <div class="cards">
+      <div class="card">Siti Web Personalizzati</div>
+      <div class="card">SEO Avanzato</div>
+      <div class="card">UI/UX Design</div>
+    </div>
+  </section>
 
-    <section id="services" class="section services">
-        <h2>I nostri servizi</h2>
-        <div class="cards">
-            <div class="card" data-tilt>
-                <h3>Web Design</h3>
-                <p>Design accattivanti, moderni e mobile-first</p>
-            </div>
-            <div class="card" data-tilt>
-                <h3>Sviluppo Custom</h3>
-                <p>Soluzioni su misura con tecnologie all'avanguardia</p>
-            </div>
-            <div class="card" data-tilt>
-                <h3>SEO Avanzata</h3>
-                <p>Ottimizzazione per scalare i motori di ricerca</p>
-            </div>
-        </div>
-    </section>
+  <section id="chi-siamo" class="section">
+    <h2>Chi siamo</h2>
+    <p>Davide Salis, CEO di Upzeo. Sviluppo esperienze digitali che portano risultati reali.</p>
+  </section>
 
-    <section id="contact" class="section contact">
-        <h2>Contattaci</h2>
-        <form id="contact-form">
-            <input type="text" placeholder="Nome" required>
-            <input type="email" placeholder="Email" required>
-            <textarea placeholder="Messaggio" required></textarea>
-            <button type="submit">Invia</button>
-        </form>
-    </section>
+  <section id="contatti" class="section">
+    <h2>Contattaci</h2>
+    <form id="contact-form">
+      <input type="text" placeholder="Il tuo nome" required>
+      <input type="email" placeholder="La tua email" required>
+      <textarea placeholder="Il tuo messaggio" required></textarea>
+      <button type="submit" class="btn-neon">Invia</button>
+    </form>
+  </section>
 
-    <footer>
-        <p>&copy; 2025 Upzeo. Tutti i diritti riservati.</p>
-    </footer>
+  <footer>
+    <p>&copy; 2025 Upzeo. Tutti i diritti riservati.</p>
+  </footer>
 
-    <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
