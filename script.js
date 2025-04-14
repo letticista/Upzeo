@@ -37,3 +37,26 @@ document.addEventListener("scroll", () => {
     header.style.background = "rgba(0, 0, 0, 0.7)";
   }
 });
+
+// Menu a tendina responsive
+const menuToggle = document.createElement("div");
+menuToggle.classList.add("menu-toggle");
+menuToggle.innerHTML = `<span></span><span></span><span></span>`;
+
+const nav = document.querySelector(".nav");
+const navLinks = document.createElement("div");
+navLinks.classList.add("nav-links");
+navLinks.innerHTML = `
+  <a href="#hero">Home</a>
+  <a href="#services">Servizi</a>
+  <a href="#about">Chi siamo</a>
+  <a href="#contact">Contatti</a>
+`;
+
+nav.innerHTML = "";
+nav.appendChild(menuToggle);
+nav.appendChild(navLinks);
+
+menuToggle.addEventListener("click", () => {
+  navLinks.classList.toggle("show");
+});
