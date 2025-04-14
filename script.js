@@ -33,3 +33,7 @@ document.getElementById('contact-form').addEventListener('submit', function (e) 
     e.preventDefault();
     alert('Messaggio inviato! Ti risponderemo presto.');
 });
+function toggleMenu() {
+    const menu = document.getElementById('mobile-menu');
+    menu.classList.toggle('show');
+}
