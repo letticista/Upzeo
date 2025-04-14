@@ -9,36 +9,35 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <nav class="navbar">
-      <div class="container">
-        <div class="logo">Upzeo</div>
-        <ul class="nav-links">
-          <li><a href="#hero" class="nav-link">Home</a></li>
-          <li><a href="#services" class="nav-link">Servizi</a></li>
-          <li><a href="#contact" class="nav-link">Contatti</a></li>
-        </ul>
-        <div class="hamburger" id="hamburger">&#9776;</div>
-      </div>
-    </nav>
-    <div class="mobile-menu" id="mobileMenu">
-      <a href="#hero" class="mobile-link">Home</a>
-      <a href="#services" class="mobile-link">Servizi</a>
-      <a href="#contact" class="mobile-link">Contatti</a>
+  <nav class="navbar">
+    <div class="container">
+      <div class="logo">Upzeo</div>
+      <ul class="nav-links">
+        <li><a href="#hero" class="nav-link">Home</a></li>
+        <li><a href="#services" class="nav-link">Servizi</a></li>
+        <li><a href="#contact" class="nav-link">Contatti</a></li>
+      </ul>
+      <div class="hamburger" id="hamburger">&#9776;</div>
     </div>
-  </header>
+  </nav>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#hero" class="mobile-link">Home</a>
+    <a href="#services" class="mobile-link">Servizi</a>
+    <a href="#contact" class="mobile-link">Contatti</a>
+  </div>
 
-  <section id="hero" class="hero">
-    <div class="hero-overlay"></div>
-    <div class="hero-content">
-      <h1 class="headline">Siti Web che Trasformano il Tuo Business</h1>
-      <p class="subheadline">Design futuristici ed interattivi, pensati per piccole e medie imprese. Siamo qui per farti emergere!</p>
-      <a href="#contact" class="cta-button">Richiedi Consulenza</a>
-    </div>
-    <!-- Testi laterali che appaiono/dispaiono tramite gesture -->
-    <div class="side-text left-text">Innovazione Reale</div>
-    <div class="side-text right-text">Crescita Garantita</div>
-  </section>
+  <header>
+    <section id="hero" class="hero">
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <h1 class="headline">Siti Web che Trasformano il Tuo Business</h1>
+        <p class="subheadline">Design futuristici ed interattivi, pensati per piccole e medie imprese. Siamo qui per farti emergere!</p>
+        <a href="#contact" class="cta-button">Richiedi Consulenza</a>
+      </div>
+      <div class="side-text left-text">Innovazione Reale</div>
+      <div class="side-text right-text">Crescita Garantita</div>
+    </section>
+  </header>
 
   <section id="services" class="services">
     <div class="section-header">
@@ -78,6 +77,55 @@
     <p>&copy; 2025 Upzeo | CEO: Davide Salis. Tutti i diritti riservati.</p>
   </footer>
 
-  <script src="script.js"></script>
+  <script>
+    function toggleMenu() {
+      const mobileMenu = document.getElementById('mobileMenu');
+      mobileMenu.classList.toggle('show');
+    }
+
+    document.getElementById('hamburger').addEventListener('click', toggleMenu);
+
+    document.querySelectorAll('.nav-links a, .mobile-menu a, .cta-button').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const targetID = this.getAttribute('href');
+        const targetElement = document.querySelector(targetID);
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 70,
+            behavior: 'smooth'
+          });
+        }
+        const mobileMenu = document.getElementById('mobileMenu');
+        if (mobileMenu.classList.contains('show')) {
+          mobileMenu.classList.remove('show');
+        }
+      });
+    });
+
+    let touchStartX = 0;
+    let touchEndX = 0;
+    const sensitivity = 50;
+
+    document.addEventListener('touchstart', function(e) {
+      touchStartX = e.changedTouches[0].screenX;
+    });
+
+    document.addEventListener('touchend', function(e) {
+      touchEndX = e.changedTouches[0].screenX;
+      if (touchStartX - touchEndX > sensitivity) {
+        document.querySelectorAll('.side-text').forEach(el => el.style.display = 'none');
+      }
+      if (touchEndX - touchStartX > sensitivity) {
+        document.querySelectorAll('.side-text').forEach(el => el.style.display = 'block');
+      }
+    });
+
+    document.getElementById('contact-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Grazie per averci contattato! Ti risponderemo al più presto.');
+      this.reset();
+    });
+  </script>
 </body>
 </html>
