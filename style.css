@@ -2,8 +2,9 @@
 :root {
   --primary: #00ffe7;
   --secondary: #ff00d4;
-  --dark-bg: #0a0a0a;
-  --glass: rgba(15,15,15,0.7);
+  --dark: #0a0a0a;
+  --darker: #050505;
+  --glass: rgba(10, 10, 10, 0.85);
 }
 
 * {
@@ -14,13 +15,14 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background: var(--dark-bg);
+  background: var(--dark);
   color: white;
   overflow-x: hidden;
+  line-height: 1.6;
 }
 
 /* EFFETTO 3D BACKGROUND */
-#3d-bg {
+#3d-background {
   position: fixed;
   top: 0;
   left: 0;
@@ -29,60 +31,99 @@ body {
   z-index: -1;
 }
 
-/* NAVBAR AVANZATA */
-.glass-nav {
+/* HEADER */
+.glass-header {
   position: fixed;
   width: 100%;
-  padding: 20px 5%;
+  padding: 1.5rem 5%;
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: var(--glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   z-index: 1000;
 }
 
 .logo {
   font-size: 2rem;
   font-weight: 700;
-  letter-spacing: 2px;
 }
 
-.logo-accent {
-  color: var(--primary);
+.logo-gradient {
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.nav-links {
+/* NAVBAR */
+.nav-menu {
   display: flex;
   gap: 2rem;
   list-style: none;
 }
 
-.nav-links a {
+.nav-menu a {
   color: white;
   text-decoration: none;
   font-weight: 500;
   position: relative;
-  transition: all 0.3s ease;
+  padding: 0.5rem 0;
 }
 
-.nav-links a:hover {
-  color: var(--primary);
+.nav-menu a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width 0.3s ease;
+}
+
+.nav-menu a:hover::after,
+.nav-menu a.active::after {
+  width: 100%;
+}
+
+/* DROPDOWN */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--darker);
+  min-width: 200px;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 1001;
+}
+
+.dropdown:hover .dropdown-content {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* HERO SECTION */
-.hero-content {
-  padding-top: 20vh;
+.hero-container {
+  padding: 20vh 5% 10vh;
   text-align: center;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
-h1 {
-  font-size: clamp(2rem, 5vw, 4rem);
-  margin-bottom: 1rem;
+.hero-title {
+  font-size: clamp(2rem, 6vw, 4rem);
+  margin-bottom: 1.5rem;
   line-height: 1.2;
 }
 
@@ -91,57 +132,40 @@ h1 {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 20px rgba(0,255,231,0.3);
 }
 
-.cta-btn {
+.cta-button {
   display: inline-block;
-  margin-top: 2rem;
-  padding: 15px 30px;
+  padding: 1rem 2rem;
   background: linear-gradient(90deg, var(--primary), var(--secondary));
   color: black;
   font-weight: 600;
   border-radius: 50px;
   text-decoration: none;
+  margin-top: 2rem;
   transition: transform 0.3s, box-shadow 0.3s;
 }
 
-.cta-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(0,255,231,0.5);
-}
-
-/* ANIMAZIONI */
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-
-.service-3d {
-  perspective: 1000px;
-  transform-style: preserve-3d;
-  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.service-3d:hover {
-  transform: translateY(-10px) rotateX(5deg);
+.cta-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 255, 231, 0.4);
 }
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-  .nav-links {
+  .nav-menu {
     position: fixed;
     top: 80px;
     right: -100%;
     flex-direction: column;
-    background: var(--dark-bg);
-    width: 70%;
+    background: var(--darker);
+    width: 80%;
     height: calc(100vh - 80px);
     padding: 2rem;
     transition: right 0.3s ease;
   }
 
-  .nav-links.active {
+  .nav-menu.active {
     right: 0;
   }
 }
