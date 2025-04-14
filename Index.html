@@ -1,223 +1,68 @@
 <!DOCTYPE html>
-<html lang="it" data-theme="light">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sviluppo siti web ad alte prestazioni per PMI. Soluzioni su misura con design innovativo e tecnologia cutting-edge.">
-    <meta property="og:image" content="https://upzeo.infy.uk/images/social-preview.jpg">
     <title>Upzeo | Web Solutions Avanzate</title>
-
-    <!-- Preload risorse critiche -->
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Montserrat:wght@800&display=swap" as="font" crossorigin>
-
-    <!-- Ottimizzazione SEO -->
-    <meta name="description" content="Sviluppo siti web ad alte prestazioni per PMI. Soluzioni su misura con design innovativo e tecnologia cutting-edge.">
-
-    <!-- Favicon Moderna -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
-
-    <!-- CSS Ottimizzato -->
-    <style>
-        /*! Critical CSS inlined */
-        :root {
-            --primary: hsl(252, 100%, 67%);
-            --primary-dark: hsl(252, 89%, 57%);
-            --secondary: hsl(329, 100%, 66%);
-            --dark: hsl(210, 27%, 15%);
-            --light: hsl(210, 33%, 99%);
-            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        body {
-            font-family: 'Space Grotesk', sans-serif;
-            margin: 0;
-            overflow-x: hidden;
-            background: var(--light);
-            color: var(--dark);
-            line-height: 1.6;
-        }
-
-        /* Animazione iniziale */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .hero {
-            animation: fadeIn 1s both;
-        }
-
-        /* Styling Navbar */
-        .navbar-3d {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            position: relative;
-        }
-
-        .logo svg {
-            fill: url(#gradient);
-        }
-
-        .theme-toggle {
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-
-        .theme-toggle i {
-            font-size: 1.5rem;
-            color: var(--dark);
-        }
-
-        /* Hero Section */
-        .hero-content {
-            position: absolute;
-            top: 30%;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-        }
-
-        .hero h1 {
-            font-size: 3rem;
-            font-weight: bold;
-            color: var(--primary);
-            animation: fadeIn 1s both;
-        }
-
-        .cta-container {
-            margin-top: 2rem;
-        }
-
-        .cta-button {
-            background: var(--primary);
-            padding: 10px 30px;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
-
-        .cta-button:hover {
-            background: var(--primary-dark);
-        }
-
-        /* Services Section */
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 50px 0;
-        }
-
-        .service-card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
-        }
-
-        .service-card:hover {
-            transform: translateY(-10px);
-        }
-
-        /* Footer */
-        .footer {
-            background: var(--dark);
-            color: white;
-            padding: 2rem 0;
-        }
-
-        .newsletter-form input {
-            padding: 10px;
-            border-radius: 5px;
-            border: none;
-            width: 300px;
-        }
-
-        .footer-bottom {
-            text-align: center;
-            padding: 10px;
-            background: var(--primary-dark);
-        }
-
-    </style>
-
-    <!-- CSS Differito -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Montserrat:wght@800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css" media="print" onload="this.media='all'">
-
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vanilla-tilt@1.7.2/dist/vanilla-tilt.min.js"></script>
 </head>
-
 <body>
-    <!-- Navbar -->
-    <nav class="navbar-3d">
-        <a href="/" class="logo">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                <path d="M20 0L40 20L20 40L0 20L20 0Z" fill="url(#gradient)"/>
-                <defs>
-                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="var(--primary)"/>
-                        <stop offset="100%" stop-color="var(--secondary)"/>
-                    </linearGradient>
-                </defs>
-            </svg>
-            <span>UPZEO</span>
-        </a>
-        
-        <div class="nav-links">
-            <a href="#services" class="nav-link hover-underline">Servizi</a>
-            <a href="#portfolio" class="nav-link hover-underline">Portfolio</a>
-            <a href="#about" class="nav-link hover-underline">Chi Sono</a>
-            <a href="#contact" class="cta-button">Contatti</a>
-        </div>
-
-        <button class="theme-toggle" aria-label="Toggle theme">
-            <i class="fas fa-moon"></i>
-        </button>
+    <nav class="navbar">
+        <div class="logo">🚀 Upzeo</div>
+        <ul class="nav-links">
+            <li><a href="#about">Chi siamo</a></li>
+            <li><a href="#services">Servizi</a></li>
+            <li><a href="#contact">Contatti</a></li>
+        </ul>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="hero">
-        <canvas id="webgl-canvas"></canvas>
+    <header class="hero">
         <div class="hero-content">
-            <h1 class="text-gradient">
-                <span class="typewriter" data-words='["Sviluppo Web","Design Innovativo","Performance","SEO Avanzato"]'></span><br>
-                per la tua attività
-            </h1>
-            <p class="subtitle">Soluzioni su misura che <strong>aumentano conversioni</strong> e <strong>fidelizzano clienti</strong></p>
-            <div class="cta-container">
-                <a href="#contact" class="cta-button">
-                    <i class="fas fa-paper-plane"></i> Richiedi preventivo
-                </a>
+            <h1><span class="gradient-text">Soluzioni Web Futuristiche</span></h1>
+            <p>Progettiamo esperienze digitali che lasciano il segno</p>
+            <a href="#contact" class="cta-button">Inizia Ora</a>
+        </div>
+        <div class="parallax-bg"></div>
+    </header>
+
+    <section id="about" class="section">
+        <h2>Chi siamo</h2>
+        <p>Upzeo nasce dalla visione di <strong>Davide Salis</strong>, CEO e sviluppatore full-stack. Offriamo esperienze web che combinano estetica, performance e tecnologia.</p>
+    </section>
+
+    <section id="services" class="section services">
+        <h2>I nostri servizi</h2>
+        <div class="cards">
+            <div class="card" data-tilt>
+                <h3>Web Design</h3>
+                <p>Design accattivanti, moderni e mobile-first</p>
+            </div>
+            <div class="card" data-tilt>
+                <h3>Sviluppo Custom</h3>
+                <p>Soluzioni su misura con tecnologie all'avanguardia</p>
+            </div>
+            <div class="card" data-tilt>
+                <h3>SEO Avanzata</h3>
+                <p>Ottimizzazione per scalare i motori di ricerca</p>
             </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="newsletter">
-                <h3>Rimani Aggiornato</h3>
-                <form class="newsletter-form">
-                    <input type="email" placeholder="La tua email">
-                    <button type="submit"><i class="fas fa-paper-plane"></i></button>
-                </form>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; <span id="current-year"></span> Upzeo. Tutti i diritti riservati.</p>
-        </div>
+    <section id="contact" class="section contact">
+        <h2>Contattaci</h2>
+        <form id="contact-form">
+            <input type="text" placeholder="Nome" required>
+            <input type="email" placeholder="Email" required>
+            <textarea placeholder="Messaggio" required></textarea>
+            <button type="submit">Invia</button>
+        </form>
+    </section>
+
+    <footer>
+        <p>&copy; 2025 Upzeo. Tutti i diritti riservati.</p>
     </footer>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanilla-tilt@1.7.2/dist/vanilla-tilt.min.js" defer></script>
-    <script src="js/main.js" defer></script>
+    <script src="script.js"></script>
 </body>
 </html>
