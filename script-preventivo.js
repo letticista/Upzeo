@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.set('service_type_combined', services); // Aggiunge campo combinato
 
             // *** SOSTITUISCI CON IL TUO ENDPOINT (Formspree, Netlify, tuo backend) ***
-            const ENDPOINT_URL = 'https://formspree.io/f/YOUR_FORM_ID'; // ESEMPIO con Formspree
+            const ENDPOINT_URL = 'https://formspree.io/f/xkgjyllb'; // ESEMPIO con Formspree
             // const ENDPOINT_URL = '/api/submit-quote'; // Esempio con tuo backend
 
             try {
