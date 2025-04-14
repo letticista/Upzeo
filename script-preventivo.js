@@ -328,3 +328,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 }); // Fine DOMContentLoaded
+// === Validazione del Form Preventivo ===
+document.getElementById("quote-form").addEventListener("submit", function (e) {
+    const serviceCheckboxes = document.querySelectorAll('input[name="service_type"]:checked');
+    const errorMsg = document.getElementById("service_type-error");
+
+    if (serviceCheckboxes.length === 0) {
+        e.preventDefault();
+        errorMsg.textContent = "Seleziona almeno un tipo di servizio.";
+        errorMsg.style.color = "red";
+        window.scrollTo({ top: errorMsg.offsetTop - 100, behavior: "smooth" });
+    } else {
+        errorMsg.textContent = ""; // rimuove l'errore se tutto ok
+    }
+});
