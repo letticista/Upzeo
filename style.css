@@ -1,117 +1,129 @@
-/* style.css */
+:root {
+  --primary: #00ffe7;
+  --secondary: #ff00d4;
+  --bg-dark: #0d0d0d;
+  --card-bg: #1a1a1a;
+  --text-light: #f8f9fa;
+  --transition: 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
 
 * {
   box-sizing: border-box;
-}
-
-body, html {
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  overflow-x: hidden;
-  background-color: #0d0d0d;
-  color: white;
 }
 
-header {
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-light);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  padding: 1rem 5%;
+  background: rgba(13, 13, 13, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background: rgba(0, 0, 0, 0.7);
-  position: fixed;
-  width: 100%;
-  z-index: 1000;
 }
 
 .logo {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: #00ffe7;
-  z-index: 1001;
-}
-
-.nav {
-  position: relative;
-  z-index: 1001;
-}
-
-.menu-toggle {
-  display: none;
-  flex-direction: column;
-  cursor: pointer;
-}
-
-.menu-toggle span {
-  background: white;
-  height: 3px;
-  width: 25px;
-  margin: 4px;
-  transition: all 0.3s ease;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
 }
 
 .nav-links {
   display: flex;
+  gap: 2rem;
   list-style: none;
 }
 
-.nav-links a {
-  margin-left: 1.5rem;
+.nav-link {
+  color: var(--text-light);
   text-decoration: none;
-  color: white;
-  transition: color 0.3s;
+  position: relative;
+  padding: 0.5rem;
+  transition: color var(--transition);
 }
 
-.nav-links a:hover {
-  color: #00ffe7;
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  transition: width var(--transition);
 }
 
-@media (max-width: 768px) {
-  .menu-toggle {
-    display: flex;
-  }
-
-  .nav-links {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background: #111;
-    flex-direction: column;
-    width: 200px;
-    display: none;
-    padding: 1rem;
-    border-radius: 0 0 10px 10px;
-  }
-
-  .nav-links.show {
-    display: flex;
-  }
-
-  .nav-links a {
-    margin: 0.5rem 0;
-  }
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
 }
 
-/* Responsive tweaks */
+.hero {
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+  position: relative;
+  isolation: isolate;
+}
+
 .title {
-  font-size: 3rem;
-  background: linear-gradient(45deg, #00ffe7, #ff00d4);
+  font-size: clamp(2rem, 8vw, 4rem);
+  background: linear-gradient(45deg, var(--primary), var(--secondary));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
 }
 
-.subtitle {
-  font-size: 1.5rem;
-  color: #ccc;
+.card {
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 16px;
+  transform: translateZ(0);
+  transition: transform var(--transition), box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(0, 255, 231, 0.15);
 }
 
 @media (max-width: 768px) {
-  .title {
-    font-size: 2rem;
+  .nav-links {
+    position: fixed;
+    top: 70px;
+    right: -100%;
+    flex-direction: column;
+    background: var(--bg-dark);
+    width: min(90%, 300px);
+    padding: 2rem;
+    border-radius: 12px;
+    transition: right 0.3s ease;
   }
-  .subtitle {
-    font-size: 1rem;
+
+  .nav-links.active {
+    right: 5%;
   }
 }
 
-/* Custom animations and transitions can be added here if needed */
+/* Resto dello stile mantenuto con variabili CSS */
