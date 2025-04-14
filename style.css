@@ -192,18 +192,28 @@ body {
 
 @media (max-width: 768px) {
     .nav-menu {
-        display: none; /* Hide the desktop menu on mobile */
+        display: none; /* Nascondi il menu desktop su mobile */
     }
 
     .menu-toggle {
         display: block;
-        position: absolute; /* Position the toggle button */
+        position: absolute;
         top: 1.5rem;
         right: 5%;
+        background-color: red; /* Lo facciamo rosso per vederlo bene */
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 16px; /* Aumentiamo la dimensione del testo se non compaiono le barre */
+        line-height: 1;
+        z-index: 1003; /* Assicuriamoci che sia sopra ad altri elementi */
+    }
+    .menu-toggle::before {
+        content: "MENU"; /* Aggiungiamo la parola MENU per essere sicuri di vederlo */
     }
 
     .nav-menu.active {
-        display: flex; /* Show the mobile menu when active */
+        display: flex;
         position: fixed;
         top: 0;
         right: 0;
