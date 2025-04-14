@@ -1,72 +1,39 @@
-// --- script.js ---
+// script.js
 
-VANTA.FOG({
-  el: "#vanta-bg",
-  mouseControls: true,
-  touchControls: true,
-  minHeight: 200.00,
-  minWidth: 200.00,
-  highlightColor: 0xff00ff,
-  midtoneColor: 0x000000,
-  lowlightColor: 0x00fff7,
-  baseColor: 0x000000,
-  blurFactor: 0.6,
-  speed: 1.50,
-  zoom: 1.1
+document.getElementById("contact-form").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const responseBox = document.getElementById("form-response");
+
+  responseBox.textContent = "Invio in corso...";
+  responseBox.style.color = "#00ffe7";
+
+  setTimeout(() => {
+    responseBox.textContent = "Messaggio inviato con successo! Ti contatteremo presto.";
+  }, 1500);
 });
 
-// GSAP animations
+// Scroll animations con GSAP
+gsap.registerPlugin(ScrollTrigger);
 
-gsap.from(".main-header", {
-  y: -100,
-  opacity: 0,
-  duration: 1,
-  ease: "power4.out"
-});
-
-gsap.from(".hero-title", {
-  delay: 0.5,
-  y: 50,
-  opacity: 0,
-  duration: 1.2,
-  ease: "power3.out"
-});
-
-gsap.from(".hero-subtitle", {
-  delay: 0.8,
-  y: 30,
-  opacity: 0,
-  duration: 1,
-  ease: "power3.out"
-});
-
-gsap.from(".cta", {
-  delay: 1.2,
-  scale: 0.5,
-  opacity: 0,
-  duration: 1,
-  ease: "elastic.out(1, 0.5)"
-});
-
-// Scroll animations
-
-gsap.utils.toArray(".section").forEach(section => {
+gsap.utils.toArray("section").forEach((section) => {
   gsap.from(section, {
     scrollTrigger: {
       trigger: section,
       start: "top 80%",
-      toggleActions: "play none none none"
     },
     opacity: 0,
     y: 50,
     duration: 1,
-    ease: "power2.out"
+    ease: "power2.out",
   });
 });
 
-// Contact form submission (no backend, just UX feedback)
-document.querySelector(".contact-form").addEventListener("submit", function(e) {
-  e.preventDefault();
-  alert("Grazie per averci contattato! Ti risponderemo al più presto.");
-  this.reset();
+// Cambia colore header al scroll
+document.addEventListener("scroll", () => {
+  const header = document.querySelector(".header");
+  if (window.scrollY > 50) {
+    header.style.background = "rgba(0, 0, 0, 0.9)";
+  } else {
+    header.style.background = "rgba(0, 0, 0, 0.7)";
+  }
 });
