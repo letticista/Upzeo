@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuxuryShop - Vetrina E-Commerce</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="ecommerce.css">
+</head>
+<body>
+    <div class="preloader">
+        <div class="preloader-inner">
+            <div class="preloader-icon">
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <header class="header">
+        <div class="container">
+            <div class="header-inner">
+                <div class="logo">
+                    <a href="#">
+                        <span class="logo-text">Luxury</span>
+                        <span class="logo-dot">.</span>
+                    </a>
+                </div>
+                
+                <nav class="navbar">
+                    <ul class="menu">
+                        <li><a href="#home" class="active">Home</a></li>
+                        <li><a href="#products">Prodotti</a></li>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#testimonials">Recensioni</a></li>
+                        <li><a href="#contact">Contatti</a></li>
+                    </ul>
+                </nav>
+                
+                <div class="header-actions">
+                    <div class="search-box">
+                        <button class="search-btn"><i class="fas fa-search"></i></button>
+                        <input type="text" class="search-input" placeholder="Cerca prodotti...">
+                    </div>
+                    <div class="cart-icon">
+                        <i class="fas fa-shopping-bag"></i>
+                        <span class="cart-count">0</span>
+                    </div>
+                    <div class="mobile-menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero" id="home">
+        <div class="hero-slider">
+            <div class="hero-slide active" style="background-image: url('https://picsum.photos/1920/1080?random=1')">
+                <div class="container">
+                    <div class="hero-content">
+                        <h1>Collezione Primavera 2024</h1>
+                        <p>Scopri le ultime tendenze della moda</p>
+                        <a href="#products" class="btn">Scopri ora</a>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-slide" style="background-image: url('https://picsum.photos/1920/1080?random=2')">
+                <div class="container">
+                    <div class="hero-content">
+                        <h1>Sconti fino al 50%</h1>
+                        <p>Offerte speciali per tempo limitato</p>
+                        <a href="#products" class="btn">Acquista ora</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-controls">
+            <button class="slider-prev"><i class="fas fa-chevron-left"></i></button>
+            <button class="slider-next"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </section>
+
+    <section class="products" id="products">
+        <div class="container">
+            <div class="section-header">
+                <h2>I Nostri Prodotti</h2>
+                <p>Scopri la nostra selezione premium</p>
+            </div>
+            <div class="products-filter">
+                <button class="filter-btn active" data-filter="all">Tutti</button>
+                <button class="filter-btn" data-filter="men">Uomo</button>
+                <button class="filter-btn" data-filter="women">Donna</button>
+            </div>
+            <div class="products-grid"></div>
+            <button class="btn load-more">Carica Altri</button>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-col">
+                    <h3>LuxuryShop</h3>
+                    <p>Il tuo negozio di moda luxury</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h3>Link Utili</h3>
+                    <ul>
+                        <li><a href="#">Termini e condizioni</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Spedizioni</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div class="cart-sidebar">
+        <div class="cart-header">
+            <h3>Carrello</h3>
+            <button class="close-cart"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="cart-items"></div>
+        <div class="cart-total">
+            <span>Totale:</span>
+            <span class="total-price">€0.00</span>
+        </div>
+        <button class="btn checkout-btn">Checkout</button>
+    </div>
+
+    <script src="ecommerce.js"></script>
+</body>
+</html>
