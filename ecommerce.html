@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>eCommerce Showcase – Upzeo</title>
+  <title>ShopMaster – Esperienze d’Acquisto Uniche</title>
   <!-- Stili globali Upzeo -->
   <link rel="stylesheet" href="upzeo.css">
   <!-- Stili personalizzati e-commerce -->
@@ -12,15 +12,13 @@
   <script defer src="ecommerce.js"></script>
 </head>
 <body>
-  <!-- Header Upzeo con toggle tema -->
+  <!-- Header con tema e carrello -->
   <header class="site-header">
-    <div class="logo">
-      <a href="/" class="upzeo-logo">Upzeo</a>
-    </div>
+    <div class="logo"><a href="/" class="upzeo-logo">Upzeo</a></div>
     <nav class="nav">
       <a href="/" class="nav-link">Home</a>
       <a href="/services" class="nav-link">Servizi</a>
-      <a href="#products" class="nav-link">Prodotti</a>
+      <a href="#products" class="nav-link">Collezione</a>
       <a href="/contact" class="nav-link">Contatti</a>
     </nav>
     <div class="header-right">
@@ -29,40 +27,33 @@
     </div>
   </header>
 
-  <!-- Hero Parallax + SVG Divider -->
+  <!-- Hero con immagine di sfondo e gradient overlay -->
   <section class="hero">
+    <div class="overlay"></div>
     <div class="hero-content">
-      <h1>Benvenuto su ShopMaster</h1>
-      <p>Scopri prodotti esclusivi con animazioni avanzate</p>
-      <button class="btn-primary" onclick="scrollToProducts()">Inizia Ora</button>
+      <h1 class="gradient-text">Vivi il Futuro dello Shopping</h1>
+      <p class="subtitle">Prodotti esclusivi. Offerte lampo. Spedizione gratuita.</p>
+      <button class="btn-primary" onclick="scrollToProducts()">Scopri Ora</button>
     </div>
-    <div class="floating-shapes">
-      <div class="shape circle"></div>
-      <div class="shape triangle"></div>
-      <div class="shape square"></div>
-    </div>
-    <svg class="divider" viewBox="0 0 1200 100" preserveAspectRatio="none">
-      <path d="M0,0 C600,100 600,0 1200,100 L1200,0 L0,0 Z" fill="var(--upzeo-bg)"></path>
-    </svg>
   </section>
 
-  <!-- Route Prodotti -->
+  <!-- Griglia Prodotti -->
   <main id="products" class="product-grid"></main>
 
-  <!-- Modale Carrello con animazioni GSAP -->
+  <!-- Modale Carrello Animato -->
   <div class="cart-modal" id="cart-modal">
     <div class="cart-content" id="cart-content">
       <button class="close" id="close-cart">×</button>
       <h2>Il tuo Carrello</h2>
       <ul id="cart-items"></ul>
       <div class="cart-total">Totale: €<span id="cart-total">0.00</span></div>
-      <button id="checkout-btn" class="btn-primary">Checkout</button>
+      <button id="checkout-btn" class="btn-primary">Completa Acquisto</button>
     </div>
   </div>
 
-  <!-- Footer Upzeo -->
+  <!-- Footer -->
   <footer class="site-footer">
-    <p>&copy; 2025 Upzeo. Tutti i diritti riservati.</p>
+    <p>&copy; 2025 Upzeo & ShopMaster. Tutti i diritti riservati.</p>
   </footer>
 </body>
 </html>
