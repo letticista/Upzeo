@@ -1,121 +1,173 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Preloader
     window.addEventListener('load', () => {
-        document.querySelector('.preloader').style.display = 'none';
+        document.querySelector('.preloader').style.opacity = '0';
+        setTimeout(() => {
+            document.querySelector('.preloader').style.display = 'none';
+        }, 500);
     });
 
     // Mobile Menu
     const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
     const navbar = document.querySelector('.navbar');
+    const menuLinks = document.querySelectorAll('.navbar a');
 
     mobileMenuBtn.addEventListener('click', () => {
         navbar.classList.toggle('active');
+        document.body.classList.toggle('no-scroll');
     });
 
-    // Hero Slider
+    menuLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            navbar.classList.remove('active');
+            document.body.classList.remove('no-scroll');
+        });
+    });
+
+    // Hero Slider con Autoplay
     const slides = document.querySelectorAll('.hero-slide');
     let currentSlide = 0;
+    let autoSlideInterval;
 
     function showSlide(n) {
-        slides.forEach(slide => slide.classList.remove('active'));
+        slides.forEach(slide => {
+            slide.classList.remove('active');
+            slide.style.transform = 'scale(1.1)';
+        });
         slides[n].classList.add('active');
+        slides[n].style.transform = 'scale(1)';
+        
+        currentSlide = n;
     }
 
+    function nextSlide() {
+        let newSlide = currentSlide + 1;
+        if(newSlide >= slides.length) newSlide = 0;
+        showSlide(newSlide);
+    }
+
+    // Avvia autoplay
+    autoSlideInterval = setInterval(nextSlide, 5000);
+
+    // Gestione controlli manuali
     document.querySelector('.slider-next').addEventListener('click', () => {
-        currentSlide = (currentSlide + 1) % slides.length;
-        showSlide(currentSlide);
+        clearInterval(autoSlideInterval);
+        nextSlide();
+        autoSlideInterval = setInterval(nextSlide, 5000);
     });
 
     document.querySelector('.slider-prev').addEventListener('click', () => {
-        currentSlide = (currentSlide - 1 + slides.length) % slides.length;
-        showSlide(currentSlide);
+        clearInterval(autoSlideInterval);
+        let newSlide = currentSlide - 1;
+        if(newSlide < 0) newSlide = slides.length - 1;
+        showSlide(newSlide);
+        autoSlideInterval = setInterval(nextSlide, 5000);
     });
 
-    // Cart Functionality
-    const cartIcon = document.querySelector('.cart-icon');
-    const cartSidebar = document.querySelector('.cart-sidebar');
-    const closeCart = document.querySelector('.close-cart');
-    let cartItems = [];
+    // Carrello Avanzato
+    const cart = {
+        items: [],
+        addItem(product) {
+            this.items.push(product);
+            this.updateCart();
+            this.animateCartIcon();
+        },
+        updateCart() {
+            // Aggiorna interfaccia
+            document.querySelector('.cart-count').textContent = this.items.length;
+            
+            // Aggiorna lista prodotti
+            const cartItemsContainer = document.querySelector('.cart-items');
+            cartItemsContainer.innerHTML = this.items.map((item, index) => `
+                <div class="cart-item">
+                    <div class="cart-item-image">
+                        <img src="${item.image}" alt="${item.name}">
+                    </div>
+                    <div class="cart-item-info">
+                        <h4>${item.name}</h4>
+                        <p>€${item.price}</p>
+                        <button class="remove-item" data-index="${index}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Aggiorna totale
+            const total = this.items.reduce((sum, item) => sum + parseFloat(item.price), 0);
+            document.querySelector('.total-price').textContent = `€${total.toFixed(2)}`;
+        },
+        animateCartIcon() {
+            const cartIcon = document.querySelector('.cart-icon');
+            cartIcon.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                cartIcon.style.transform = 'scale(1)';
+            }, 300);
+        }
+    };
 
-    cartIcon.addEventListener('click', () => {
-        cartSidebar.classList.add('active');
+    // Aggiungi prodotto al carrello
+    document.addEventListener('click', (e) => {
+        if(e.target.closest('.add-to-cart')) {
+            const productId = e.target.closest('.add-to-cart').dataset.id;
+            const product = products.find(p => p.id == productId);
+            cart.addItem(product);
+        }
+        
+        if(e.target.closest('.remove-item')) {
+            const index = e.target.closest('.remove-item').dataset.index;
+            cart.items.splice(index, 1);
+            cart.updateCart();
+        }
     });
 
-    closeCart.addEventListener('click', () => {
-        cartSidebar.classList.remove('active');
-    });
+    // Genera prodotti fittizi
+    const products = Array.from({length: 12}, (_, i) => ({
+        id: i + 1,
+        name: `Prodotto ${i + 1}`,
+        price: (Math.random() * 100 + 50).toFixed(2),
+        image: `https://picsum.photos/400/500?random=${i + 1}`,
+        category: ['men', 'women'][Math.floor(Math.random() * 2)]
+    }));
 
-    // Product Generation
-    function generateProducts() {
-        return Array.from({length: 12}, (_, i) => ({
-            id: i + 1,
-            name: `Prodotto ${i + 1}`,
-            price: (Math.random() * 100 + 50).toFixed(2),
-            image: `https://picsum.photos/400/500?random=${i}`,
-            category: ['men', 'women'][Math.floor(Math.random() * 2)]
-        }));
-    }
-
-    function renderProducts(products) {
+    // Renderizza prodotti
+    function renderProducts() {
         const grid = document.querySelector('.products-grid');
         grid.innerHTML = products.map(product => `
             <div class="product-card" data-category="${product.category}">
-                <img src="${product.image}" alt="${product.name}">
-                <div class="product-info" style="padding: 1rem">
+                <div class="product-image">
+                    <img src="${product.image}" alt="${product.name}">
+                </div>
+                <div class="product-info">
                     <h3>${product.name}</h3>
-                    <p>€${product.price}</p>
-                    <button class="btn add-to-cart" data-id="${product.id}">
-                        Aggiungi al Carrello
-                    </button>
+                    <div class="product-details">
+                        <p class="price">€${product.price}</p>
+                        <button class="btn btn-primary add-to-cart" data-id="${product.id}">
+                            <i class="fas fa-shopping-bag"></i>
+                            Aggiungi
+                        </button>
+                    </div>
                 </div>
             </div>
         `).join('');
     }
 
-    // Filter Products
+    // Filtra prodotti
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             const filter = this.dataset.filter;
-            const products = document.querySelectorAll('.product-card');
             
-            products.forEach(product => {
-                if(filter === 'all' || product.dataset.category === filter) {
-                    product.style.display = 'block';
-                } else {
-                    product.style.display = 'none';
-                }
+            document.querySelectorAll('.product-card').forEach(card => {
+                card.style.display = (filter === 'all' || card.dataset.category === filter) 
+                    ? 'block' 
+                    : 'none';
             });
         });
     });
 
-    // Add to Cart
-    document.addEventListener('click', (e) => {
-        if(e.target.classList.contains('add-to-cart')) {
-            const productId = e.target.dataset.id;
-            const product = generateProducts().find(p => p.id == productId);
-            cartItems.push(product);
-            updateCart();
-        }
-    });
-
-    function updateCart() {
-        const count = document.querySelector('.cart-count');
-        count.textContent = cartItems.length;
-        
-        const cartItemsContainer = document.querySelector('.cart-items');
-        cartItemsContainer.innerHTML = cartItems.map(item => `
-            <div class="cart-item">
-                <h4>${item.name}</h4>
-                <p>€${item.price}</p>
-            </div>
-        `).join('');
-        
-        const total = cartItems.reduce((sum, item) => sum + parseFloat(item.price), 0);
-        document.querySelector('.total-price').textContent = `€${total.toFixed(2)}`;
-    }
-
-    // Initialize
-    renderProducts(generateProducts());
+    // Inizializzazione
+    renderProducts();
+    showSlide(0);
 });
