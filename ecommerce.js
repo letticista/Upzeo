@@ -1,173 +1,72 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Preloader
-    window.addEventListener('load', () => {
-        document.querySelector('.preloader').style.opacity = '0';
-        setTimeout(() => {
-            document.querySelector('.preloader').style.display = 'none';
-        }, 500);
-    });
-
-    // Mobile Menu
-    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-    const navbar = document.querySelector('.navbar');
-    const menuLinks = document.querySelectorAll('.navbar a');
-
-    mobileMenuBtn.addEventListener('click', () => {
-        navbar.classList.toggle('active');
-        document.body.classList.toggle('no-scroll');
-    });
-
-    menuLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            navbar.classList.remove('active');
-            document.body.classList.remove('no-scroll');
-        });
-    });
-
-    // Hero Slider con Autoplay
-    const slides = document.querySelectorAll('.hero-slide');
-    let currentSlide = 0;
-    let autoSlideInterval;
-
-    function showSlide(n) {
-        slides.forEach(slide => {
-            slide.classList.remove('active');
-            slide.style.transform = 'scale(1.1)';
-        });
-        slides[n].classList.add('active');
-        slides[n].style.transform = 'scale(1)';
-        
-        currentSlide = n;
-    }
-
-    function nextSlide() {
-        let newSlide = currentSlide + 1;
-        if(newSlide >= slides.length) newSlide = 0;
-        showSlide(newSlide);
-    }
-
-    // Avvia autoplay
-    autoSlideInterval = setInterval(nextSlide, 5000);
-
-    // Gestione controlli manuali
-    document.querySelector('.slider-next').addEventListener('click', () => {
-        clearInterval(autoSlideInterval);
-        nextSlide();
-        autoSlideInterval = setInterval(nextSlide, 5000);
-    });
-
-    document.querySelector('.slider-prev').addEventListener('click', () => {
-        clearInterval(autoSlideInterval);
-        let newSlide = currentSlide - 1;
-        if(newSlide < 0) newSlide = slides.length - 1;
-        showSlide(newSlide);
-        autoSlideInterval = setInterval(nextSlide, 5000);
-    });
-
-    // Carrello Avanzato
-    const cart = {
-        items: [],
-        addItem(product) {
-            this.items.push(product);
-            this.updateCart();
-            this.animateCartIcon();
-        },
-        updateCart() {
-            // Aggiorna interfaccia
-            document.querySelector('.cart-count').textContent = this.items.length;
-            
-            // Aggiorna lista prodotti
-            const cartItemsContainer = document.querySelector('.cart-items');
-            cartItemsContainer.innerHTML = this.items.map((item, index) => `
-                <div class="cart-item">
-                    <div class="cart-item-image">
-                        <img src="${item.image}" alt="${item.name}">
-                    </div>
-                    <div class="cart-item-info">
-                        <h4>${item.name}</h4>
-                        <p>€${item.price}</p>
-                        <button class="remove-item" data-index="${index}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-            
-            // Aggiorna totale
-            const total = this.items.reduce((sum, item) => sum + parseFloat(item.price), 0);
-            document.querySelector('.total-price').textContent = `€${total.toFixed(2)}`;
-        },
-        animateCartIcon() {
-            const cartIcon = document.querySelector('.cart-icon');
-            cartIcon.style.transform = 'scale(1.2)';
-            setTimeout(() => {
-                cartIcon.style.transform = 'scale(1)';
-            }, 300);
-        }
-    };
-
-    // Aggiungi prodotto al carrello
-    document.addEventListener('click', (e) => {
-        if(e.target.closest('.add-to-cart')) {
-            const productId = e.target.closest('.add-to-cart').dataset.id;
-            const product = products.find(p => p.id == productId);
-            cart.addItem(product);
-        }
-        
-        if(e.target.closest('.remove-item')) {
-            const index = e.target.closest('.remove-item').dataset.index;
-            cart.items.splice(index, 1);
-            cart.updateCart();
-        }
-    });
-
-    // Genera prodotti fittizi
-    const products = Array.from({length: 12}, (_, i) => ({
-        id: i + 1,
-        name: `Prodotto ${i + 1}`,
-        price: (Math.random() * 100 + 50).toFixed(2),
-        image: `https://picsum.photos/400/500?random=${i + 1}`,
-        category: ['men', 'women'][Math.floor(Math.random() * 2)]
-    }));
-
-    // Renderizza prodotti
-    function renderProducts() {
-        const grid = document.querySelector('.products-grid');
-        grid.innerHTML = products.map(product => `
-            <div class="product-card" data-category="${product.category}">
-                <div class="product-image">
-                    <img src="${product.image}" alt="${product.name}">
-                </div>
-                <div class="product-info">
-                    <h3>${product.name}</h3>
-                    <div class="product-details">
-                        <p class="price">€${product.price}</p>
-                        <button class="btn btn-primary add-to-cart" data-id="${product.id}">
-                            <i class="fas fa-shopping-bag"></i>
-                            Aggiungi
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Filtra prodotti
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            const filter = this.dataset.filter;
-            
-            document.querySelectorAll('.product-card').forEach(card => {
-                card.style.display = (filter === 'all' || card.dataset.category === filter) 
-                    ? 'block' 
-                    : 'none';
-            });
-        });
-    });
-
-    // Inizializzazione
-    renderProducts();
-    showSlide(0);
+// Tema dark/light
+const toggle = document.getElementById('theme-toggle');
+toggle.addEventListener('click', () => {
+  const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  toggle.textContent = theme === 'dark' ? '🌙' : '☀️';
 });
+
+// Scroll to prodotti
+function scrollToProducts() {
+  document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Gestione parallax shapes
+gsap.utils.toArray('.shape').forEach((el, i) => {
+  gsap.to(el, { y: 20 + i * 10, repeat: -1, yoyo: true, ease: 'sine.inOut', duration: 4 + i });
+});
+
+// Prodotti di esempio
+const products = [
+  { id:1, name:'Cuffie Wireless', desc:'Audio cristallino e comode.', price:59.99, image:'https://source.unsplash.com/featured/?headphones' },
+  { id:2, name:'Smartwatch', desc:'Monitoraggio salute 24/7.', price:129.99, image:'https://source.unsplash.com/featured/?smartwatch' },
+  { id:3, name:'Speaker Bluetooth', desc:'Suono potente ovunque.', price:79.99, image:'https://source.unsplash.com/featured/?speaker' },
+  { id:4, name:'Fotocamera Digitale', desc:'Scatti perfetti ad alta risoluzione.', price:249.99, image:'https://source.unsplash.com/featured/?camera' }
+];
+
+let cart = [];
+const grid = document.querySelector('.product-grid');
+const cartIcon = document.getElementById('cart-icon');
+const cartCount = document.getElementById('cart-count');
+const cartModal = document.getElementById('cart-modal');
+const cartContent = document.getElementById('cart-content');
+const closeBtn = document.getElementById('close-cart');
+const itemsList = document.getElementById('cart-items');
+const totalEl = document.getElementById('cart-total');
+const checkout = document.getElementById('checkout-btn');
+
+// Render prodotti con tilting
+products.forEach(p=>{
+  const card = document.createElement('div'); card.className='product-card';
+  card.innerHTML=`<div class="inner"><img src="${p.image}" alt><div class="product-info"><h3>${p.name}</h3><p>${p.desc}</p><div class="price">€${p.price.toFixed(2)}</div><button onclick="addToCart(${p.id})">Aggiungi</button></div></div>`;
+  // Tilt on mousemove
+  card.addEventListener('mousemove', e=>{
+    const rect=card.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width-0.5;
+    const y=(e.clientY-rect.top)/rect.height-0.5;
+    card.querySelector('.inner').style.transform=`rotateY(${x*20}deg) rotateX(${ -y*20}deg)`;
+  });
+  card.addEventListener('mouseleave',()=>{
+    card.querySelector('.inner').style.transform='rotateY(0) rotateX(0)';
+  });
+  grid.appendChild(card);
+});
+
+function addToCart(id) {
+  const prod=products.find(x=>x.id===id);
+  const exist=cart.find(i=>i.id===id);
+  if(exist) exist.qty++; else cart.push({...prod,qty:1});
+  updateCart();
+}
+function removeFromCart(id) { cart=cart.filter(i=>i.id!==id); updateCart(); }
+function updateCart() {
+  cartCount.textContent=cart.reduce((s,i)=>s+i.qty,0);
+  itemsList.innerHTML=''; let sum=0;
+  cart.forEach(i=>{ sum+=i.price*i.qty; const li=document.createElement('li'); li.innerHTML=`${i.name} x ${i.qty} = €${(i.price*i.qty).toFixed(2)} <button onclick="removeFromCart(${i.id})">×</button>`; itemsList.appendChild(li); });
+  totalEl.textContent=sum.toFixed(2);
+  if(window.UpzeoSDK) UpzeoSDK.emit('cart:update', cart);
+}
+
+cartIcon.addEventListener('click',()=>{ cartModal.style.display='flex'; cartContent.classList.add('open'); });
+closeBtn.addEventListener('click',()=>{ cartModal.style.display='none'; cartContent.classList.remove('open'); });
+checkout.addEventListener('click',()=>{ alert('Grazie per l\'acquisto!'); cart=[]; updateCart(); cartModal.style.display='none'; if(window.UpzeoSDK) UpzeoSDK.emit('checkout:complete'); });
