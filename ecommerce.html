@@ -3,57 +3,374 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShopMaster – Esperienze d’Acquisto Uniche</title>
-  <!-- Stili globali Upzeo -->
-  <link rel="stylesheet" href="upzeo.css">
-  <!-- Stili personalizzati e-commerce -->
+  <title>BorgoBox – I sapori dei borghi italiani</title>
+  <meta name="description" content="BorgoBox: e-commerce di box e specialità dei piccoli produttori italiani. Negozio online, abbonamento mensile e strenne aziendali, con il piano di profitto per avviare l'attività in Italia.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="ecommerce.css">
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script>
+    // Applica il tema salvato prima del render, per evitare il "lampo" di colore
+    document.documentElement.classList.add('js');
+    try {
+      const temaSalvato = localStorage.getItem('borgobox-tema');
+      if (temaSalvato) document.documentElement.setAttribute('data-theme', temaSalvato);
+    } catch (e) { /* storage non disponibile */ }
+  </script>
   <script defer src="ecommerce.js"></script>
 </head>
 <body>
-  <!-- Header con tema e carrello -->
+  <a class="skip-link" href="#catalogo">Vai al negozio</a>
+
+  <!-- Header con navigazione, tema e carrello -->
   <header class="site-header">
-    <div class="logo"><a href="/" class="upzeo-logo">Upzeo</a></div>
-    <nav class="nav">
-      <a href="/" class="nav-link">Home</a>
-      <a href="/services" class="nav-link">Servizi</a>
-      <a href="#products" class="nav-link">Collezione</a>
-      <a href="/contact" class="nav-link">Contatti</a>
+    <a href="#top" class="brand" aria-label="BorgoBox, torna su">
+      <span class="brand-mark" aria-hidden="true">B</span>
+      <span class="brand-name">BorgoBox</span>
+    </a>
+    <nav class="nav" aria-label="Sezioni">
+      <a href="#catalogo" class="nav-link">Negozio</a>
+      <a href="#come-funziona" class="nav-link">Come funziona</a>
+      <a href="#piano" class="nav-link">Piano di profitto</a>
+      <a href="#avvio" class="nav-link">Avvio in Italia</a>
+      <a href="Index.html" class="nav-link nav-link-muted">Upzeo</a>
     </nav>
-    <div class="header-right">
-      <button id="theme-toggle" class="theme-toggle">🌙</button>
-      <div class="cart-icon" id="cart-icon">🛒<span id="cart-count">0</span></div>
+    <div class="header-actions">
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Cambia tema chiaro/scuro">🌙</button>
+      <button id="cart-open" class="cart-btn" type="button" aria-label="Apri il carrello" aria-controls="cart-drawer" aria-expanded="false">
+        <span aria-hidden="true">🛒</span>
+        <span class="cart-btn-label">Carrello</span>
+        <span id="cart-count" class="cart-count" aria-live="polite">0</span>
+      </button>
     </div>
   </header>
 
-  <!-- Hero con immagine di sfondo e gradient overlay -->
-  <section class="hero">
-    <div class="overlay"></div>
-    <div class="hero-content">
-      <h1 class="gradient-text">Vivi il Futuro dello Shopping</h1>
-      <p class="subtitle">Prodotti esclusivi. Offerte lampo. Spedizione gratuita.</p>
-      <button class="btn-primary" onclick="scrollToProducts()">Scopri Ora</button>
+  <main id="top">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-text">
+        <p class="eyebrow">E-commerce di specialità italiane</p>
+        <h1>I sapori dei piccoli borghi italiani, <em>in una box</em>.</h1>
+        <p class="lead">Selezioniamo olio, pasta, sughi e miele da piccoli produttori italiani e li spediamo in tutta Italia in 24–72 ore. Per te, come regalo o per i clienti della tua azienda.</p>
+        <div class="hero-cta">
+          <a href="#catalogo" class="btn btn-primary">Scegli la tua box</a>
+          <a href="#piano" class="btn btn-ghost">Come genera profitto →</a>
+        </div>
+        <ul class="trust">
+          <li><span aria-hidden="true">🚚</span> Spedizione gratuita sopra 49 €</li>
+          <li><span aria-hidden="true">↩️</span> Recesso entro 14 giorni</li>
+          <li><span aria-hidden="true">🔁</span> Abbonamento disdicibile</li>
+        </ul>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="crate">
+          <span>🫒</span><span>🍝</span><span>🍅</span>
+          <span>🍯</span><span>🧺</span><span>🌿</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Come funziona -->
+    <section id="come-funziona" class="section">
+      <div class="section-head">
+        <p class="eyebrow">Come funziona</p>
+        <h2>Dal produttore alla tua tavola in tre passi</h2>
+      </div>
+      <ol class="steps">
+        <li class="step reveal">
+          <span class="step-num">1</span>
+          <h3>Scegli</h3>
+          <p>Una box pronta, i singoli prodotti di dispensa o l'abbonamento mensile con una regione diversa ogni mese.</p>
+        </li>
+        <li class="step reveal">
+          <span class="step-num">2</span>
+          <h3>Ordina</h3>
+          <p>Invii l'ordine su WhatsApp o via email e ricevi subito le istruzioni di pagamento (bonifico, PayPal o Satispay).</p>
+        </li>
+        <li class="step reveal">
+          <span class="step-num">3</span>
+          <h3>Ricevi</h3>
+          <p>Prepariamo la box con imballo per alimenti e la spediamo con corriere tracciato in tutta Italia.</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Catalogo -->
+    <section id="catalogo" class="section">
+      <div class="section-head">
+        <p class="eyebrow">Negozio</p>
+        <h2>Box e specialità</h2>
+      </div>
+      <div class="filters" role="group" aria-label="Filtra per categoria">
+        <button class="chip is-active" type="button" data-filtro="tutti" aria-pressed="true">Tutti</button>
+        <button class="chip" type="button" data-filtro="box" aria-pressed="false">Box regalo</button>
+        <button class="chip" type="button" data-filtro="dispensa" aria-pressed="false">Dispensa</button>
+        <button class="chip" type="button" data-filtro="abbonamento" aria-pressed="false">Abbonamento</button>
+      </div>
+      <div id="product-grid" class="product-grid"></div>
+    </section>
+
+    <!-- Piano di profitto -->
+    <section id="piano" class="section section-alt">
+      <div class="section-head">
+        <p class="eyebrow">Piano di profitto</p>
+        <h2>Perché questa attività guadagna in Italia</h2>
+        <p class="section-sub">Un e-commerce di specialità alimentari si avvia senza negozio fisico, con poco magazzino e in regime forfettario. Il profitto arriva da quattro leve.</p>
+      </div>
+
+      <div class="levers">
+        <article class="lever reveal">
+          <h3>Margine sulle box</h3>
+          <p>Comprando dai produttori a prezzo di ingrosso, la merce pesa circa il 45–50% del prezzo: la confezione regalo e la selezione aumentano il valore percepito.</p>
+        </article>
+        <article class="lever reveal">
+          <h3>Ricavi ricorrenti</h3>
+          <p>L'abbonamento mensile trasforma un cliente in un incasso prevedibile ogni mese e abbassa il costo di acquisizione per ordine.</p>
+        </article>
+        <article class="lever reveal">
+          <h3>Natale e aziende</h3>
+          <p>Le strenne aziendali sono una tradizione italiana: proponile alle PMI della tua zona tra ottobre e novembre per ordini da decine di box.</p>
+        </article>
+        <article class="lever reveal">
+          <h3>Scontrino medio alto</h3>
+          <p>La spedizione gratuita sopra 49 € spinge ad aggiungere un prodotto al carrello: più valore per ordine, stessi costi di spedizione.</p>
+        </article>
+      </div>
+
+      <!-- Simulatore -->
+      <div class="simulator" id="simulatore">
+        <div class="sim-controls">
+          <div class="sim-head">
+            <h3>Simula il tuo profitto</h3>
+            <div class="presets" role="group" aria-label="Scenari">
+              <button type="button" class="chip" data-scenario="prudente" aria-pressed="false">Prudente</button>
+              <button type="button" class="chip is-active" data-scenario="realistico" aria-pressed="true">Realistico</button>
+              <button type="button" class="chip" data-scenario="ottimizzato" aria-pressed="false">Ottimizzato</button>
+            </div>
+          </div>
+
+          <form id="sim-form" class="sim-form" onsubmit="return false">
+            <div class="field">
+              <label for="sim-ordini">Ordini al mese</label>
+              <output for="sim-ordini" id="out-ordini"></output>
+              <input type="range" id="sim-ordini" name="ordini" min="10" max="400" step="5">
+            </div>
+            <div class="field">
+              <label for="sim-scontrino">Scontrino medio</label>
+              <output for="sim-scontrino" id="out-scontrino"></output>
+              <input type="range" id="sim-scontrino" name="scontrino" min="20" max="120" step="1">
+            </div>
+            <div class="field">
+              <label for="sim-merce">Costo della merce sul prezzo</label>
+              <output for="sim-merce" id="out-merce"></output>
+              <input type="range" id="sim-merce" name="merce" min="30" max="75" step="1">
+            </div>
+            <div class="field">
+              <label for="sim-logistica">Spedizione e imballo per ordine <small>(al netto di quanto paga il cliente)</small></label>
+              <output for="sim-logistica" id="out-logistica"></output>
+              <input type="range" id="sim-logistica" name="logistica" min="0" max="15" step="0.5">
+            </div>
+            <div class="field">
+              <label for="sim-commissioni">Commissioni di pagamento</label>
+              <output for="sim-commissioni" id="out-commissioni"></output>
+              <input type="range" id="sim-commissioni" name="commissioni" min="0" max="5" step="0.1">
+            </div>
+            <div class="field">
+              <label for="sim-marketing">Pubblicità al mese <small>(Meta, Google Shopping)</small></label>
+              <output for="sim-marketing" id="out-marketing"></output>
+              <input type="range" id="sim-marketing" name="marketing" min="0" max="4000" step="50">
+            </div>
+            <div class="field">
+              <label for="sim-fissi">Costi fissi al mese <small>(piattaforma, commercialista, strumenti)</small></label>
+              <output for="sim-fissi" id="out-fissi"></output>
+              <input type="range" id="sim-fissi" name="fissi" min="0" max="1500" step="10">
+            </div>
+            <fieldset class="field field-inline">
+              <legend>Regime forfettario</legend>
+              <label class="radio"><input type="radio" name="aliquota" value="0.05" checked> Imposta 5% <small>(primi 5 anni)</small></label>
+              <label class="radio"><input type="radio" name="aliquota" value="0.15"> Imposta 15%</label>
+              <label class="check"><input type="checkbox" name="riduzioneInps" checked> Riduzione INPS del 35%</label>
+            </fieldset>
+          </form>
+        </div>
+
+        <div class="sim-results" aria-live="polite">
+          <div class="hero-figure">
+            <p class="hero-figure-label" id="res-netto-label">Utile netto stimato al mese</p>
+            <p class="hero-figure-value" id="res-netto-mese">–</p>
+            <p class="hero-figure-sub" id="res-netto-anno"></p>
+          </div>
+
+          <div id="sim-alert" class="alert" hidden></div>
+
+          <div class="kpi-row">
+            <div class="kpi">
+              <p class="kpi-label">Fatturato annuo</p>
+              <p class="kpi-value" id="res-fatturato">–</p>
+            </div>
+            <div class="kpi">
+              <p class="kpi-label">Utile prima di tasse e INPS</p>
+              <p class="kpi-value" id="res-operativo">–</p>
+            </div>
+            <div class="kpi">
+              <p class="kpi-label">Tasse e INPS all'anno</p>
+              <p class="kpi-value" id="res-tasse">–</p>
+            </div>
+            <div class="kpi">
+              <p class="kpi-label">Ordini al mese per andare in pari</p>
+              <p class="kpi-value" id="res-pareggio">–</p>
+            </div>
+          </div>
+
+          <div class="meter-block">
+            <div class="meter-head">
+              <p>Fatturato rispetto alla soglia del forfettario</p>
+              <p id="res-soglia-testo" class="meter-value"></p>
+            </div>
+            <div class="meter" role="meter" id="res-soglia" aria-label="Fatturato rispetto alla soglia di 85.000 €" aria-valuemin="0" aria-valuemax="100">
+              <div class="meter-fill" id="res-soglia-fill"></div>
+            </div>
+          </div>
+
+          <div class="breakdown">
+            <h4>Dove vanno 100 € incassati</h4>
+            <ul id="res-breakdown" class="bars"></ul>
+          </div>
+
+          <p class="disclaimer">Stima indicativa con i parametri 2026 del regime forfettario per il commercio: coefficiente di redditività 40%, imposta sostitutiva 5% o 15%, contributi INPS commercianti 24,48% con minimale di 4.611,64 € (reddito minimale 18.808 €), soglia di 85.000 €. I contributi sono calcolati sul reddito forfettario, non sull'utile reale. Se hai già un lavoro dipendente a tempo pieno l'iscrizione alla Gestione Commercianti potrebbe non essere dovuta. Verifica sempre con il tuo commercialista.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Avvio dell'attività in Italia -->
+    <section id="avvio" class="section">
+      <div class="section-head">
+        <p class="eyebrow">Avvio in Italia</p>
+        <h2>Cosa serve per aprire l'attività</h2>
+      </div>
+      <ol class="checklist">
+        <li class="reveal">
+          <h3>Partita IVA in regime forfettario</h3>
+          <p>Con i codici ATECO 2025 l'e-commerce si classifica in base alla merce venduta: per le specialità alimentari serve un codice del gruppo 47.2, non più il vecchio 47.91.10.</p>
+        </li>
+        <li class="reveal">
+          <h3>Camera di Commercio e SCIA</h3>
+          <p>Iscrizione al Registro Imprese con la Comunicazione Unica e SCIA per il commercio elettronico allo sportello SUAP del tuo Comune.</p>
+        </li>
+        <li class="reveal">
+          <h3>INPS Gestione Commercianti</h3>
+          <p>Iscrizione alla gestione previdenziale e domanda di riduzione dei contributi del 35% riservata ai forfettari.</p>
+        </li>
+        <li class="reveal">
+          <h3>Requisiti per gli alimenti</h3>
+          <p>Se tieni alimenti a magazzino serve la registrazione sanitaria (Reg. CE 852/2004) tramite SUAP e la formazione HACCP. Niente alcolici all'inizio: richiedono adempimenti in più.</p>
+        </li>
+        <li class="reveal">
+          <h3>Sito in regola</h3>
+          <p>Condizioni di vendita, diritto di recesso di 14 giorni (Codice del Consumo), informativa privacy e cookie (GDPR), dati dell'impresa e partita IVA nel footer.</p>
+        </li>
+        <li class="reveal">
+          <h3>Pagamenti e spedizioni</h3>
+          <p>Un conto per bonifici, PayPal o Satispay e un contratto con un corriere: le tariffe concordate abbassano il costo per ordine.</p>
+        </li>
+      </ol>
+
+      <div class="launch">
+        <h3>Piano di lancio in 90 giorni</h3>
+        <div class="launch-grid">
+          <div class="launch-step reveal">
+            <p class="launch-when">Mese 1</p>
+            <p>Accordi con 8–10 produttori, foto dei prodotti, apertura della partita IVA e pubblicazione del negozio.</p>
+          </div>
+          <div class="launch-step reveal">
+            <p class="launch-when">Mese 2</p>
+            <p>Lancio su Instagram e Facebook, campagne Google Shopping e primi abbonati tra amici e clienti locali.</p>
+          </div>
+          <div class="launch-step reveal">
+            <p class="launch-when">Mese 3</p>
+            <p>Listino per le strenne aziendali da proporre alle PMI e box a tema per Natale, il periodo con più ordini dell'anno.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-band">
+        <div>
+          <h3>Vuoi lanciare un e-commerce come questo?</h3>
+          <p>Upzeo realizza il negozio online, il catalogo e il sistema di ordini per la tua attività.</p>
+        </div>
+        <a href="preventivo.html" class="btn btn-primary">Richiedi un preventivo</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Carrello e checkout -->
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+    <div class="drawer-head">
+      <h2 id="drawer-title">Il tuo carrello</h2>
+      <button type="button" class="icon-btn" id="cart-close" aria-label="Chiudi il carrello">×</button>
     </div>
-  </section>
 
-  <!-- Griglia Prodotti -->
-  <main id="products" class="product-grid"></main>
-
-  <!-- Modale Carrello Animato -->
-  <div class="cart-modal" id="cart-modal">
-    <div class="cart-content" id="cart-content">
-      <button class="close" id="close-cart">×</button>
-      <h2>Il tuo Carrello</h2>
-      <ul id="cart-items"></ul>
-      <div class="cart-total">Totale: €<span id="cart-total">0.00</span></div>
-      <button id="checkout-btn" class="btn-primary">Completa Acquisto</button>
+    <!-- Vista carrello -->
+    <div class="drawer-body" id="view-cart">
+      <div class="shipping-progress" id="shipping-progress">
+        <p id="shipping-text"></p>
+        <div class="progress"><div class="progress-fill" id="shipping-fill"></div></div>
+      </div>
+      <ul id="cart-items" class="cart-items"></ul>
+      <p id="cart-empty" class="cart-empty">Il carrello è vuoto. Inizia da una box!</p>
+      <dl class="totals">
+        <div><dt>Subtotale</dt><dd id="cart-subtotal">0,00 €</dd></div>
+        <div><dt>Spedizione</dt><dd id="cart-shipping">–</dd></div>
+        <div class="totals-total"><dt>Totale</dt><dd id="cart-total">0,00 €</dd></div>
+      </dl>
+      <button type="button" id="checkout-btn" class="btn btn-primary btn-block" disabled>Procedi all'ordine</button>
     </div>
-  </div>
 
-  <!-- Footer -->
+    <!-- Vista checkout -->
+    <form class="drawer-body" id="view-checkout" hidden novalidate>
+      <button type="button" class="link-btn" id="back-to-cart">← Torna al carrello</button>
+      <div class="form-grid">
+        <label class="span-2">Nome e cognome<input name="nome" autocomplete="name" required></label>
+        <label>Telefono<input name="telefono" type="tel" autocomplete="tel" required></label>
+        <label>Email<input name="email" type="email" autocomplete="email" required></label>
+        <label class="span-2">Indirizzo<input name="indirizzo" autocomplete="street-address" required></label>
+        <label>CAP<input name="cap" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" autocomplete="postal-code" required></label>
+        <label>Città e provincia<input name="citta" autocomplete="address-level2" placeholder="Es. Cagliari (CA)" required></label>
+        <label class="span-2">Pagamento
+          <select name="pagamento" required>
+            <option value="Bonifico">Bonifico bancario</option>
+            <option value="PayPal">PayPal</option>
+            <option value="Satispay">Satispay</option>
+          </select>
+        </label>
+        <label class="span-2">Note <small>(biglietto regalo, orari di consegna)</small><textarea name="note" rows="2"></textarea></label>
+        <label class="check span-2"><input type="checkbox" name="consenso" required><span>Accetto le condizioni di vendita e l'<a href="informativa.html" target="_blank" rel="noopener">informativa privacy</a></span></label>
+      </div>
+      <p class="form-error" id="form-error" role="alert" hidden></p>
+      <p class="checkout-total">Totale da pagare: <strong id="checkout-total">0,00 €</strong></p>
+      <button type="submit" class="btn btn-primary btn-block" value="whatsapp">Invia l'ordine su WhatsApp</button>
+      <button type="submit" class="btn btn-ghost btn-block" value="email">Invia l'ordine via email</button>
+    </form>
+
+    <!-- Vista conferma -->
+    <div class="drawer-body" id="view-done" hidden>
+      <div class="done">
+        <p class="done-icon" aria-hidden="true">✓</p>
+        <h3>Ordine <span id="done-code"></span> pronto</h3>
+        <p>Completa l'invio nella finestra che si è aperta. Ti risponderemo con le istruzioni di pagamento e la data di spedizione.</p>
+        <a id="done-resend" class="btn btn-ghost btn-block" href="#" target="_blank" rel="noopener">Non si è aperto? Invia di nuovo</a>
+        <button type="button" class="btn btn-primary btn-block" id="done-close">Continua gli acquisti</button>
+      </div>
+    </div>
+  </aside>
+
+  <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
   <footer class="site-footer">
-    <p>&copy; 2025 Upzeo & ShopMaster. Tutti i diritti riservati.</p>
+    <p>&copy; <span id="anno"></span> BorgoBox · Negozio online realizzato da <a href="Index.html">Upzeo</a></p>
+    <p><a href="informativa.html">Privacy</a> · <a href="contatti.html">Contatti</a></p>
   </footer>
 </body>
 </html>
