@@ -606,7 +606,7 @@ def espresso_material():
 
 
 def tds_of(tau):
-    return 1.0 + 1.5 * (1 - C.smooth(0.2, 1.8, tau))
+    return 1.0 + 0.6 * (1 - C.smooth(0.2, 1.8, tau))
 
 
 # ------------------------------------------------------------------ camera
@@ -635,16 +635,17 @@ def _cam(t):
 
 
 LIGHTS = {  # real watts under the basket (drops) and over the cup (stream and crema)
-    'x_key': (0.7, 0.2), 'x_under': (0.12, 0.0), 'x_rim': (0.8, 0.6), 'x_back': (0.5, 0.5), 'x_spec': (0.0, 0.35)}
+    'x_key': (0.6, 0.0), 'x_ckey': (0.0, 0.2), 'x_rim': (0.8, 0.6), 'x_back': (0.5, 0.5), 'x_spec': (0.0, 0.35)}
 
 
 def _lights(scene):
-    key = S.area_light(scene, 'x_key', 8.0, 1.0, (1.0, 0.92, 0.84), size_y=5.0)
-    key.location = (-10.0, -8.0, -4.0)
-    S.aim(key, (0.0, 0.0, -5.0))
-    under = S.area_light(scene, 'x_under', 7.0, 1.0, (1.0, 0.95, 0.9))
-    under.location = (-1.0, -7.0, -12.0)
-    S.aim(under, (0.0, 0.0, FLOOR))
+    # under the basket a grid-confined softbox lights the drops but not the white cup below them (the floor mirrors it)
+    key = S.area_light(scene, 'x_key', 8.0, 1.0, (1.0, 0.92, 0.84), size_y=5.0, spread=28.0)
+    key.location = (-8.0, -9.0, -7.5)
+    S.aim(key, (0.0, 0.0, FLOOR))
+    ckey = S.area_light(scene, 'x_ckey', 8.0, 1.0, (1.0, 0.92, 0.84), size_y=5.0)
+    ckey.location = (-10.0, -8.0, -4.0)
+    S.aim(ckey, (0.0, 0.0, -9.0))
     rim = S.area_light(scene, 'x_rim', 2.0, 1.0, (1.0, 0.74, 0.48), size_y=12.0)
     rim.location = (8.0, 5.0, -5.0)
     S.aim(rim, (0.0, 0.0, -5.0))
@@ -655,17 +656,20 @@ def _lights(scene):
     spec = S.area_light(scene, 'x_spec', 4.0, 1.0, (1.0, 0.9, 0.78), size_y=2.5)
     spec.location = (0.9, 5.0, -6.2)
     S.aim(spec, (-0.2, 0.1, -11.2))
-    for ob in (key, under, rim, back, spec):
+    for ob in (key, ckey, rim, back, spec):
         ob.visible_camera = False
         a, b = LIGHTS[ob.name]
         for f in range(scene.frame_start - 1, scene.frame_end + 2):
             k = C.smooth(1.6, 2.4, C.time_of(f) - T0)
             ob.data.energy = S.real_watts(C.lerp(a, b, k))
             ob.data.keyframe_insert('energy', frame=f)
+    back.visible_glossy = False         # a backlight for the drops, not a big window mirrored in the polished floor
     # warm, softly lit card far behind the stream: an out-of-focus glow to read the liquid against
     card = P.mesh_obj('x_glow', np.array([[-9, 8.6, -16], [9, 8.6, -16], [9, 8.6, 4], [-9, 8.6, 4]], float), [(0, 1, 2, 3)],
                       scene.collection, _glow_material(), smooth=False)
     card.visible_shadow = False
+    card.visible_glossy = False       # seen through the liquid, not mirrored by the basket floor
+    card.visible_diffuse = False
 
 
 def _glow_material():
@@ -726,7 +730,7 @@ def build(scene):
     C.set_interpolation(liquid.data.materials[0].node_tree, 'LINEAR')
     _lights(scene)
     S.make_camera(scene, 'cam_extract', _cam)
-    S.key_world(scene.world, lambda t: (2.4, 0.3, 0.08), range(scene.frame_start - 1, scene.frame_end + 2))
+    S.key_world(scene.world, lambda t: (2.4, 0.12, 0.06), range(scene.frame_start - 1, scene.frame_end + 2))
     del data
     attach(scene)
 
