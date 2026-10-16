@@ -23,12 +23,13 @@ sys.path.insert(0, str(HERE))
 
 import bpy  # noqa: E402
 
-from coffee import common as C, stage as S, titles  # noqa: E402
+from coffee import common as C, materials as M, stage as S, titles  # noqa: E402
 
 
 def main():
     t0 = time.time()
     C.CACHE.mkdir(parents=True, exist_ok=True)
+    M.basket_hole_mask(C.ASSETS / 'basket_holes.png')
     default = bpy.data.scenes[0]
     for ob in list(bpy.data.objects):
         bpy.data.objects.remove(ob)

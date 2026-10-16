@@ -358,7 +358,9 @@ def crema():
     age = g.attr('age', 'Fac')
     fresh = g.attr('fresh', 'Fac')
     # colour by age and position: centre -> mid -> rim tones, darkened by age
-    base = g.ramp(g.math('MAXIMUM', rim, age), [(0.0, (0.558, 0.242, 0.045)), (0.55, (0.497, 0.162, 0.023)), (0.93, (0.402, 0.129, 0.024)), (1.0, (0.28, 0.085, 0.016))])
+    # photo targets #C5853A / #BB702A / #AA652B include the lighting; as albedo under random-walk SSS they render too
+    # orange, so the ramp is a little darker and browner
+    base = g.ramp(g.math('MAXIMUM', rim, age), [(0.0, (0.44, 0.21, 0.065)), (0.55, (0.34, 0.14, 0.035)), (0.93, (0.25, 0.09, 0.02)), (1.0, (0.16, 0.05, 0.012))])
     warp = g.noise(co, 1.1, detail=3.0).outputs['Color']
     wco = g.node('ShaderNodeMix', data_type='VECTOR')
     g.set(wco.inputs[0], 0.4)
@@ -366,7 +368,8 @@ def crema():
     g.link(warp, wco.inputs[5])
     wv = wco.outputs[1]
     mott = g.noise(wv, 1.6, detail=5.0, rough=0.6)
-    base = g.mix_rgb(g.map_range(mott.outputs['Fac'], 0.3, 0.7, 0.0, 0.22), base, (0.62, 0.3, 0.07), 'MIX')
+    base = g.mix_rgb(g.map_range(mott.outputs['Fac'], 0.3, 0.7, 0.0, 0.35), base, (0.56, 0.3, 0.1), 'MIX')
+    base = g.mix_rgb(g.map_range(mott.outputs['Fac'], 0.25, 0.45, 0.3, 0.0), base, (0.2, 0.075, 0.018), 'MIX')
     # tiger flecks: a few % of fine dark specks, stretched along the flow
     fl = g.noise(g.mapping(wv, (1.0, 4.0, 1.0)), 22.0, detail=2.0, distortion=0.8)
     fleck = g.map_range(fl.outputs['Fac'], 0.66, 0.78, 0.0, 0.45)
