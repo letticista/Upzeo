@@ -635,7 +635,7 @@ def _cam(t):
 
 
 LIGHTS = {  # real watts under the basket (drops) and over the cup (stream and crema)
-    'x_key': (0.6, 0.0), 'x_ckey': (0.0, 0.2), 'x_rim': (0.8, 0.6), 'x_back': (0.5, 0.5), 'x_spec': (0.0, 0.35)}
+    'x_key': (0.6, 0.0), 'x_ckey': (0.0, 0.12), 'x_rim': (0.8, 0.35), 'x_back': (0.5, 0.3), 'x_spec': (0.0, 0.25)}
 
 
 def _lights(scene):
@@ -704,6 +704,10 @@ def build(scene):
     cr = CR.build_crema(col, cup['root'], 'xcrema', rings=140, segs=420, n_bubbles=120, seed=9)
     cr.ob['rings'], cr.ob['segs'] = cr.rings, cr.segs
     scene['x_crema'] = cr.ob.name
+    # foam that is still forming: its marbling is faint (it develops as the crema settles, see the cup shot)
+    tg = np.zeros(len(cr.ob.data.vertices), np.float32)
+    cr.ob.data.attributes['tiger'].data.foreach_get('value', tg)
+    cr.ob.data.attributes['tiger'].data.foreach_set('value', tg * 0.35)
     # the liquid: one metaball family
     mb = bpy.data.metaballs.new('espresso_liquid')
     mb.resolution = 0.03
@@ -749,8 +753,8 @@ def _crema_top(cr, tau, vol, imp, drops, R, swirl):
         dx, dy = px - CUP_XY[0], py - CUP_XY[1]
         return dx * ca - dy * sa, dx * sa + dy * ca
 
-    fresh = np.full(n, C.lerp(0.9, 0.2, C.smooth(0.4, 5.0, vol)), np.float32)
-    age = np.clip(0.15 + 0.55 * ur, 0, 1).astype(np.float32)
+    fresh = np.full(n, C.lerp(0.9, 0.3, C.smooth(0.4, 6.0, vol)), np.float32)
+    age = np.clip(0.35 + 0.5 * ur, 0, 1).astype(np.float32)
     ix, iy, k = imp
     if k > 0:
         lx, ly = local(ix, iy)
