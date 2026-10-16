@@ -10,21 +10,24 @@ Questa cartella contiene due video verticali per Reels (1080×1920, 60 fps), gen
 
 ## v3 · outro per Instagram (consigliata)
 
-Si apre con i chicchi in slow motion, poi le macine, la dose e il tamper, l'estrazione e la crema. La camera sale fino alla tazza, dove si stampa il logo; il finale si ferma sul claim "Su cafè de Sardigna". Non ci sono scritte durante i passaggi.
+Si apre con i chicchi in slow motion, poi le macine, la dose e il tamper. L'estrazione è con portafiltro senza fondo (bottomless), come nei video di Instagram: le gocce escono dai fori del filtro, si uniscono in un velo, si raccolgono nel cono e da lì scende un unico filo di caffè nella tazza. Dalla crema la camera sale fino alla tazza, dove si stampa il logo; il finale si ferma sul claim "Su cafè de Sardigna". Non ci sono scritte durante i passaggi.
 
 Il look realistico è dato da:
 - illuminazione e riflessi da un HDRI reale di una caffetteria, che fa anche da sfondo sfocato;
 - profondità di campo, motion blur (4 sottofotogrammi per fotogramma), ambient occlusion e ombre morbide;
 - macinato fatto con una texture scansionata (colore, normal, rugosità, AO e displacement), nel getto e nel cumulo; dopo il tamper resta una pastiglia compatta;
-- caffè che scende ambrato e semi-traslucido, con le striature tipiche dell'espresso al posto della lucentezza da bibita;
-- micro-rilievi su chicchi, crema e porcellana.
+- il caffè è un liquido vero: rifrange quello che ha dietro e assorbe la luce secondo lo spessore (quasi nero al centro del filo, ambrato sui bordi), con striature di crema che scendono insieme al flusso;
+- fisica del getto: il filo accelera, si assottiglia e in basso si increspa; il cono oscilla appena; nella tazza il getto scava una piccola conca con onde concentriche e la crema si allarga attorno; niente più goccioline finte;
+- luci a pannello (soft box) per riflessi ampi e fotografici su metallo e liquido;
+- micro-rilievi su chicchi, crema e porcellana;
+- anti-aliasing da "supersampling": ogni fotogramma è la media di 4 sottofotogrammi spostati di frazioni di pixel, più una lieve aberrazione cromatica dell'obiettivo.
 
 Il finale dura di più: la polvere dorata si spegne piano e la dissolvenza al nero dura 1,2 s.
 
 ```bash
 cd ~/Upzeo/sardinian-coffee
 git pull
-npm run preview:v3:chrome -- 165,232,300,700 0.5   # 4 fotogrammi di prova in v3/preview/
+npm run preview:v3:chrome -- 255,300,330,404,414 0.5   # fotogrammi di prova dell'estrazione in v3/preview/
 npm run render:v3:chrome                      # video completo → sardinian_coffee_outro_v3.mp4
 ```
 

@@ -1,7 +1,9 @@
 // Sardinian Coffee Corner — v3 Instagram outro (12 s, 1080x1920, 60 fps).
-// Beans in slow motion -> burrs -> dosing & tamp -> extraction -> crema -> crane to the cup, the logo prints on it.
-// Look: cafe HDRI lighting and blurred background, depth of field, motion blur (sub-frame accumulation),
-// ground-truth ambient occlusion, soft VSM shadows, procedural micro-relief on beans, crema, porcelain and grounds.
+// Beans in slow motion -> burrs -> dosing & tamp -> bottomless extraction (drops on the basket floor, the cone,
+// one stream into the cup) -> crema -> crane to the cup, the logo prints on it.
+// Look: cafe HDRI lighting and blurred background, softbox area lights, depth of field, motion blur and
+// sub-pixel jitter (sub-frame accumulation), ground-truth ambient occlusion, soft VSM shadows, espresso rendered as
+// a refracting liquid with Beer-Lambert absorption, procedural crema and micro-relief, slight lens fringing.
 // Every frame is a pure function of time.
 import * as THREE from 'three';
 import { mergeVertices, mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -11,6 +13,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 
 const params = new URLSearchParams(location.search);
 const SCALE = parseFloat(params.get('scale') || '1');
@@ -25,7 +28,9 @@ const FPS = 60, DUR = 12, FRAMES = FPS * DUR;
 const SHUTTER = 0.5; // 180° shutter
 
 // edit points (seconds)
-const T = { burrs: 1.2, dose: 2.25, tamp: 3.62, extract: 3.95, cup: 6.45, crane: [7.15, 8.25], reveal: [8.3, 9.25], tag: 9.3 };
+const T = { burrs: 1.2, dose: 2.25, tamp: 3.62, extract: 3.95, cup: 6.75, crane: [7.15, 8.25], reveal: [8.3, 9.25], tag: 9.3 };
+// bottomless extraction, seconds after T.extract: drops -> sheet -> cone -> stream (slow motion: g = 30 units/s², 1 unit ≈ 1 cm)
+const EX = { cone: 0.7, stream: 1.0, v0: 2.4, g: 30, coneLen: 1.2 };
 
 /* ================================================================ utils */
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -195,6 +200,162 @@ function microRelief(mat, kind, freq, amp) {
   return mat;
 }
 
+/* ================================================================ espresso as a liquid: refraction + Beer-Lambert absorption */
+// Espresso lets deep red-orange light through a few tenths of a millimetre and is nearly black through 2-3 mm:
+// attenuationColor is what survives 0.5 mm. The crema carried by the flow scatters light instead of letting it through.
+const LIQ = { uTime: { value: 0 }, uFoam: { value: 0 } };
+function liquidMaterial() {
+  const m = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.035, ior: 1.34, transmission: 1, thickness: 0.2, attenuationColor: new THREE.Color(0.5, 0.23, 0.075), attenuationDistance: 0.05, envMapIntensity: 1.0 });
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, LIQ);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec3 aFlow;\nvarying vec3 vFlow;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFlow = aFlow;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vFlow;\nuniform float uTime, uFoam;\n${GLSL_NOISE}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        // hazelnut crema streaks ride the flow: vFlow.x = when this liquid left the cone (s), vFlow.y = turn around the stream
+        float fa = vFlow.y * 6.2831853;
+        vec3 fq = vec3(cos(fa) * 0.45, sin(fa) * 0.45, vFlow.x * 6.5);
+        float fn = 0.6 * snoise(fq) + 0.28 * snoise(fq * vec3(2.2, 2.2, 2.7) + 4.1) + 0.13 * snoise(fq * vec3(5.0, 5.0, 6.1) + 9.7);
+        float foam = smoothstep(0.1, 0.62, fn + uFoam);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.6, 0.33, 0.15), foam);`)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.3, foam);')
+      .replace('material.transmission = transmission;', 'material.transmission = transmission * (1.0 - 0.8 * foam);')
+      // light crosses a chord of the stream: long through the core, short at the edges
+      .replace('material.thickness = thickness;', 'material.thickness = max(2.0 * vFlow.z * abs(dot(normal, normalize(vViewPosition))), 0.003);');
+  };
+  m.customProgramCacheKey = () => 'espresso-liquid';
+  return m;
+}
+// Thin sheet under the basket floor: drops appear at the holes, grow, join into a sheet that drains into the cone.
+// The drops are a metaball field (one gaussian per drop, wet where phi > 1) evaluated on the GPU.
+const FILM = { uBeadTex: { value: null }, uBeadN: { value: 0 }, uRad: { value: 2.12 }, uCov: { value: 0 }, uDrain: { value: 0 }, uPool: { value: 0 }, uTime: { value: 0 }, uHb: { value: 0.032 }, uHs: { value: 0.085 } };
+function filmMaterial() {
+  const m = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.04, ior: 1.34, transmission: 1, thickness: 0.05, attenuationColor: new THREE.Color(0.5, 0.23, 0.075), attenuationDistance: 0.04, envMapIntensity: 1.0 });
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, FILM);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+        uniform sampler2D uBeadTex; uniform int uBeadN; uniform float uRad, uCov, uDrain, uPool, uTime, uHb, uHs;
+        varying float vFilmH; varying vec2 vFilmP;
+        ${GLSL_NOISE}
+        float filmSheet(vec2 p) {   // wet patches that spread and join; thickest where the sheet drains into the cone
+          float r = length(p);
+          float n = 0.55 + 0.32 * snoise(vec3(p * 1.5, 3.1)) + 0.13 * snoise(vec3(p * 3.9, 7.7));
+          return uCov * n * (1.0 - smoothstep(1.75, 2.05, r)) + uDrain * exp(-r * r / 0.6);
+        }
+        float filmPhi(vec2 p, out vec2 g) {
+          float phi = 0.0; g = vec2(0.0);
+          for (int i = 0; i < 256; i++) {
+            if (i >= uBeadN) break;
+            vec4 b = texelFetch(uBeadTex, ivec2(i, 0), 0);
+            vec2 d = p - b.xy; float s2 = b.w * b.w, q = dot(d, d) / s2;
+            if (q > 14.0 || b.z <= 0.0) continue;
+            float e = b.z * exp(-q);
+            phi += e; g -= e * 2.0 / s2 * d;
+          }
+          float e0 = 0.008, s0 = filmSheet(p);
+          g += vec2(filmSheet(p + vec2(e0, 0.0)) - s0, filmSheet(p + vec2(0.0, e0)) - s0) / e0;
+          return phi + s0;
+        }`)
+      .replace('#include <beginnormal_vertex>', `
+        vec2 fP = position.xz * uRad, fG; float fPhi = filmPhi(fP, fG), fH, fdH;
+        if (fPhi > 1.0) { float sq = sqrt(fPhi - 1.0), th = tanh(uHb * sq / uHs); fH = uHs * th; fdH = uHb * (1.0 - th * th) * 0.5 / max(sq, 0.03); }
+        else { fH = -0.012 * clamp((1.0 - fPhi) * 8.0, 0.0, 1.0); fdH = fPhi > 0.875 ? 0.096 : 0.0; }
+        vec2 fGrad = fdH * fG; float fGl = length(fGrad); if (fGl > 4.0) fGrad *= 4.0 / fGl;
+        // the liquid gathers into a thicker pool in the middle, the cone hangs from it
+        float fPw = smoothstep(1.0, 1.4, fPhi), fPe = uPool * exp(-dot(fP, fP) / 0.45);
+        fH += fPw * fPe; fGrad += fPw * fPe * (-2.0 / 0.45) * fP;
+        vFilmH = max(fH, 0.0); vFilmP = fP;
+        vec3 objectNormal = vec3(-uRad * fGrad.x, 1.0, -uRad * fGrad.y);`)
+      .replace('#include <begin_vertex>', 'vec3 transformed = vec3(position.x, fH, position.z);');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying float vFilmH; varying vec2 vFilmP;\nuniform float uTime, uCov;\n${GLSL_NOISE}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        // crema streaks drifting towards the cone
+        float fr = length(vFilmP);
+        vec3 fq = vec3(vFilmP / max(fr, 1e-3) * 2.4, (fr + uTime * 0.55) * 3.2);
+        float fs = 0.6 * snoise(fq) + 0.3 * snoise(fq * 2.3 + 5.0);
+        float foam = smoothstep(0.3, 0.75, fs) * smoothstep(0.035, 0.075, vFilmH) * clamp(uCov, 0.0, 1.0);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.55, 0.3, 0.13), foam * 0.85);`)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.28, foam);')
+      .replace('material.transmission = transmission;', 'material.transmission = transmission * (1.0 - 0.75 * foam);')
+      // light goes through the sheet to the steel and back
+      .replace('material.thickness = thickness;', 'material.thickness = max(2.0 * vFilmH / max(abs(dot(normal, normalize(vViewPosition))), 0.3), 0.002);');
+  };
+  m.customProgramCacheKey = () => 'espresso-film';
+  return m;
+}
+// Crema in the cup: log-spiral swirl drifting out from where the coffee lands, tiger flecks, leopard spots,
+// pale new foam around the stream, a dark ring against the porcelain. Height: crater under the stream,
+// capillary rings and the meniscus, all on the GPU.
+const CREMA = { uTime: { value: 0 }, uImp: { value: new THREE.Vector2() }, uImpK: { value: 0 }, uR: { value: 3 }, uDrift: { value: 0.05 }, uTwist: { value: 1.2 } };
+function cremaMaterial() {
+  const m = new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.42, specularIntensity: 0.55, sheen: 0.3, sheenColor: new THREE.Color(0xc88850), sheenRoughness: 0.6, envMapIntensity: 0.3 });
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, CREMA);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+        uniform float uTime, uImpK, uR; uniform vec2 uImp; varying vec2 vCP;
+        float cremaH(vec2 p) {
+          vec2 d = p - uImp; float d2 = dot(d, d), dd = sqrt(d2);
+          float h = -0.17 * uImpK * exp(-d2 / 0.05);
+          h += 0.01 * uImpK * sin(dd * 24.0 - uTime * 30.0) * exp(-dd * 1.6) * smoothstep(0.05, 0.3, dd);
+          return h + 0.045 * pow(length(p) / uR, 12.0);
+        }`)
+      .replace('#include <beginnormal_vertex>', `
+        vec2 cP = position.xz * uR; float cH = cremaH(cP);
+        vec2 cG = vec2(cremaH(cP + vec2(0.01, 0.0)) - cH, cremaH(cP + vec2(0.0, 0.01)) - cH) / 0.01;
+        vec3 objectNormal = vec3(-uR * cG.x, 1.0, -uR * cG.y); vCP = cP;`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed.y += cH;');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float uTime, uImpK, uR, uDrift, uTwist; uniform vec2 uImp; varying vec2 vCP;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        vec2 cq = vCP - uImp;
+        float cr = length(cq), cR = length(vCP) / uR;
+        float cang = atan(cq.y, cq.x), clr = log(cr + 0.09);
+        vec2 csp = vec2(cang + clr * uTwist, clr - uTime * uDrift);   // gentle swirl drifting outwards
+        vec3 cs3 = vec3(cos(csp.x) * 1.1, sin(csp.x) * 1.1, csp.y * 2.0);
+        vec2 wp = vCP * 1.1;
+        float w1 = snoise(vec3(wp, 1.7)), w2 = snoise(vec3(wp + 5.2, 3.3));
+        float mott = 0.55 * snoise(vec3(wp * 1.3 + vec2(w1, w2) * 0.7, 0.5)) + 0.2 * snoise(vec3(wp * 3.1, 2.9)) + 0.3 * snoise(cs3);
+        // tiger flecks: fine dark specks stretched along the swirl
+        vec3 fs3 = vec3(cos(csp.x) * 9.0, sin(csp.x) * 9.0, csp.y * 5.0);
+        float fleck = smoothstep(0.5, 0.85, snoise(fs3 + vec3(w1, w2, 0.0) * 0.5) + 0.35 * snoise(vec3(vCP * 22.0, 7.3)));
+        float leo = smoothstep(0.7, 0.95, snoise(vec3(vCP * 3.6, 11.1)) + 0.25 * snoise(vec3(vCP * 10.0, 4.0)));  // a few leopard spots
+        vec3 cc = mix(vec3(0.3, 0.115, 0.03), vec3(0.47, 0.21, 0.065), smoothstep(-0.65, 0.75, mott));
+        cc = mix(cc, vec3(0.13, 0.042, 0.011), fleck * 0.4 + leo * 0.3);
+        cc = mix(cc, vec3(0.47, 0.21, 0.065), (1.0 - smoothstep(0.0, 0.6, cR)) * 0.2);                                // paler middle
+        cc = mix(cc, vec3(0.13, 0.045, 0.012), smoothstep(0.78, 0.98, cR) * 0.75);                                     // dark ring at the cup
+        float cHole = uImpK * (1.0 - smoothstep(0.05, 0.15, cr));
+        cc = mix(cc, vec3(0.62, 0.3, 0.1), uImpK * smoothstep(0.09, 0.17, cr) * (1.0 - smoothstep(0.2, 0.45, cr)) * 0.55);
+        cc = mix(cc, vec3(0.07, 0.02, 0.005), cHole);
+        diffuseColor.rgb = cc;`)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = mix(roughnessFactor, 0.1, cHole);');
+  };
+  return microRelief(m, 'bubbles', 60, 0.0016);
+}
+// Underside of the basket: 0.3 mm holes on a 1.3 mm hexagonal pitch over a 40 mm circle.
+function basketFloorMaterial() {
+  const m = new THREE.MeshPhysicalMaterial({ color: 0xd4cfc8, metalness: 1, roughness: 0.3, envMapIntensity: 1.0 });
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vFloor;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvFloor = position.xy;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec2 vFloor;')
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+        vec2 hp = vFloor / 0.13, hr = vec2(1.0, 1.7320508), hh = hr * 0.5;
+        vec2 ha = mod(hp, hr) - hh, hb = mod(hp - hh, hr) - hh;
+        float hd = length(dot(ha, ha) < dot(hb, hb) ? ha : hb) * 0.13, rr = length(vFloor);
+        float inside = 1.0 - smoothstep(2.0, 2.04, rr), hw = fwidth(hd) + 2e-4;
+        float hole = (1.0 - smoothstep(0.0155 - hw, 0.0155 + hw, hd)) * inside;
+        float lip = smoothstep(0.013, 0.02, hd) * (1.0 - smoothstep(0.02, 0.03, hd)) * inside;
+        roughnessFactor = clamp(roughnessFactor + 0.2 * lip, 0.08, 1.0);
+        diffuseColor.rgb *= 1.0 - 0.95 * hole;`);
+  };
+  m.customProgramCacheKey = () => 'basket-floor';
+  return m;
+}
+
 /* ================================================================ procedural textures */
 function canvasTex(w, h, draw, srgb = true) {
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
@@ -260,40 +421,6 @@ function groundsTexture() {
     return n > 0.988 ? [140, 96, 60] : c;
   });
 }
-function cremaTexture() { // hazelnut crema with tiger flecks, lighter centre, darker rim
-  return pixelTex(1024, 1024, (u, v) => {
-    const x = u * 2 - 1, y = v * 2 - 1, r = Math.hypot(x, y);
-    const a = Math.atan2(y, x) + r * 1.2;
-    const sx = Math.cos(a) * r, sy = Math.sin(a) * r;
-    const qx = fbm(sx * 1.6, sy * 1.6, 1.3, 3), qy = fbm(sx * 1.6 + 5.2, sy * 1.6, 2.1, 3);
-    const f = fbm(sx * 2.4 + qx * 0.6, sy * 2.4 + qy * 0.6, 0.7, 4);
-    let c = mix3([146, 88, 42], [192, 132, 74], clamp(0.5 + f * 1.1));
-    c = mix3(c, [212, 160, 100], clamp((f - 0.25) * 2.0) * 0.35);
-    const fleck = fbm(sx * 30, sy * 30, 4.4, 2);
-    if (fleck > 0.36) c = mix3(c, [98, 52, 22], clamp((fleck - 0.36) * 6) * 0.55);
-    c = mix3(c, [206, 154, 94], (1 - smooth(0.0, 0.45, r)) * 0.25);
-    c = mix3(c, [96, 52, 22], smooth(0.8, 1.0, r) * 0.8);
-    return c;
-  });
-}
-// Espresso while it pours ("coda di topo"): turbid chestnut liquid with hazelnut tiger streaks and crema flecks.
-// Laid out in physical units: one tile = 1.7 cm of stream x its circumference; periodic along the flow,
-// mirrored around the circumference so the tube has no seam.
-function espressoTexture() {
-  const Lu = 1.7, Lv = 0.25, R = Lu / (2 * Math.PI);
-  return pixelTex(1024, 128, (u, v) => {
-    const a = u * Math.PI * 2, Y = Math.abs(v * 2 - 1) * Lv;
-    const P = (fu, fv, z) => [Math.cos(a) * R * fu, Math.sin(a) * R * fu, Y * fv + z];
-    const mott = fbm(...P(4, 4, 0.3), 4);         // broad mottling
-    const streak = fbm(...P(2.5, 22, 7.1), 3);    // tiger streaks stretched along the flow
-    const bub = N3(...P(70, 70, 2.0));            // fine crema bubbles
-    let c = mix3([112, 54, 20], [156, 86, 36], clamp(0.5 + mott * 1.1));
-    c = mix3(c, [86, 38, 13], clamp((-streak - 0.08) * 2.0) * 0.55);
-    c = mix3(c, [190, 122, 62], clamp((streak - 0.12) * 2.0) * 0.45);
-    c = mix3(c, [214, 162, 102], clamp((bub - 0.62) * 3.0) * 0.25);
-    return c;
-  });
-}
 function puffTexture(seed) {
   return pixelTex(128, 128, (u, v) => {
     const x = u - 0.5, y = v - 0.5, r = Math.hypot(x, y) * 2;
@@ -313,8 +440,6 @@ async function buildMaterials() {
   TEX.granite = graniteTexture(); TEX.granite.wrapS = TEX.granite.wrapT = THREE.RepeatWrapping; TEX.granite.repeat.set(3, 3);
   TEX.cork = corkTexture(); TEX.cork.wrapS = TEX.cork.wrapT = THREE.RepeatWrapping;
   TEX.grounds = groundsTexture(); TEX.grounds.wrapS = TEX.grounds.wrapT = THREE.RepeatWrapping; TEX.grounds.repeat.set(3, 3);
-  TEX.crema = cremaTexture();
-  TEX.stripe = espressoTexture(); TEX.stripe.wrapS = TEX.stripe.wrapT = THREE.RepeatWrapping; TEX.stripe.repeat.set(3, 1);
   TEX.puffs = [0, 1, 2, 3].map(puffTexture);
 
   MAT.steel = new THREE.MeshPhysicalMaterial({ color: 0xcdc8c2, metalness: 1, roughness: 0.3, anisotropy: 0.7, envMapIntensity: 1.0 });
@@ -335,14 +460,12 @@ async function buildMaterials() {
   [gc, gn, gr, ga, gd].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1.5, 1.5); t.anisotropy = 16; });
   TEX.groundsColor = gc;
   MAT.grounds = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.74, 0.66, 0.6), map: gc, normalMap: gn, normalScale: new THREE.Vector2(1.5, 1.5), roughnessMap: gr, roughness: 1, aoMap: ga, aoMapIntensity: 1, displacementMap: gd, displacementScale: 0.075, displacementBias: -0.04, envMapIntensity: 0.45 });
-  MAT.crema = microRelief(new THREE.MeshPhysicalMaterial({ map: TEX.crema, roughness: 0.55, sheen: 0.7, sheenColor: new THREE.Color(0xe8b47a), sheenRoughness: 0.45, clearcoat: 0.15, clearcoatRoughness: 0.4, envMapIntensity: 0.45 }), 'bubbles', 34, 0.0035);
-  // thin liquid lit from behind: light leaks through the edges, so add an amber rim instead of a candy-like gloss
-  const translucentEdge = mat => { mat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', `
-      float rimF = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 2.6);
-      outgoingLight += vec3(0.62, 0.30, 0.08) * rimF * 0.5;
-      #include <opaque_fragment>`); }; return mat; };
-  MAT.espresso = translucentEdge(new THREE.MeshPhysicalMaterial({ map: TEX.stripe, roughness: 0.14, clearcoat: 0.0, envMapIntensity: 0.5 }));
-  MAT.drop = translucentEdge(new THREE.MeshPhysicalMaterial({ color: 0x8a4a1e, roughness: 0.14, envMapIntensity: 0.5 }));
+  MAT.crema = cremaMaterial();
+  MAT.liquid = liquidMaterial();
+  MAT.film = filmMaterial();
+  MAT.basketFloor = basketFloorMaterial();
+  // machine front behind the cup: polished steel, it mirrors the warm room and the backlight
+  MAT.backsplash = new THREE.MeshPhysicalMaterial({ color: 0x67625d, metalness: 1, roughness: 0.2, envMapIntensity: 0.9 });
   MAT.bean = microRelief(new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.36, clearcoat: 0.55, clearcoatRoughness: 0.35, envMapIntensity: 0.75 }), 'bean', 7, 0.012);
   MAT.chunk = microRelief(new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.75, envMapIntensity: 0.5 }), 'grain', 3, 0.04);
   // falling grounds: matte grains with tiny oily glints, mottled with the same scanned colour
@@ -464,20 +587,22 @@ function buildCup(logoTex) {
         totalEmissiveRadiance += vec3(1.0, 0.66, 0.26) * edgeGlow * 2.2;`);
   };
   const decal = new THREE.Mesh(dg, dm); decal.renderOrder = 2; group.add(decal);
-  const crema = new THREE.Mesh(polarDisk(56, 160), MAT.crema); crema.receiveShadow = true;
+  const crema = new THREE.Mesh(polarDisk(110, 256), MAT.crema); crema.receiveShadow = true;
   group.add(crema);
-  return { group, decal, decalU: U, crema, base: crema.geometry.attributes.position.array.slice() };
+  return { group, decal, decalU: U, crema };
 }
 function buildSaucer() {
   const prof = [[0.001, 0.0], [3.5, 0.0], [3.7, 0.06], [3.8, 0.28], [4.3, 0.34], [6.2, 0.56], [7.05, 0.9], [7.25, 1.08], [7.22, 1.17], [7.05, 1.12], [6.2, 0.82], [4.4, 0.66], [3.9, 0.7], [3.3, 0.64], [0.001, 0.64]];
   return shadowed(new THREE.Mesh(lathe(prof, 192), MAT.porcelain));
 }
+const FLOOR_Y = -2.4; // underside of the basket floor
 function buildPortafilter() {
   const g = new THREE.Group();
-  g.add(shadowed(new THREE.Mesh(lathe([[0.001, -3.6], [1.25, -3.6], [1.32, -3.3], [2.6, -2.9], [3.25, -2.3], [3.45, -1.2], [3.55, -0.2], [3.62, 0.0], [3.62, 0.18], [3.45, 0.26], [3.1, 0.22]], 160), MAT.copper)));
+  // bottomless: the copper body is a ring with a lip, the perforated basket floor shows from below
+  g.add(shadowed(new THREE.Mesh(lathe([[2.4, -2.34], [2.4, -2.5], [2.5, -2.82], [2.74, -2.97], [3.06, -2.82], [3.25, -2.3], [3.45, -1.2], [3.55, -0.2], [3.62, 0.0], [3.62, 0.18], [3.45, 0.26], [3.1, 0.22]], 160), MAT.copper)));
   g.add(shadowed(new THREE.Mesh(lathe([[3.09, 0.24], [2.98, 0.12], [2.93, -0.5], [2.86, -1.8], [2.76, -2.25], [2.5, -2.32], [0.001, -2.33]], 160), MAT.basket)));
-  // dark liner between the copper shell and the basket: sub-pixel cracks in the shell must not reveal the bright steel
-  g.add(new THREE.Mesh(lathe([[0.001, -2.9], [2.55, -2.88], [3.15, -2.3], [3.35, -1.2], [3.45, -0.2], [3.52, 0.0], [3.52, 0.16]], 160), new THREE.MeshBasicMaterial({ color: 0x1a0d06, side: THREE.DoubleSide })));
+  const floor = shadowed(new THREE.Mesh(new THREE.CircleGeometry(2.62, 192), MAT.basketFloor), false, true);
+  floor.rotation.x = Math.PI / 2; floor.position.y = FLOOR_Y; g.add(floor);
   for (const s of [-1, 1]) { const lug = shadowed(new THREE.Mesh(new RoundedBoxGeometry(1.5, 0.42, 1.0, 4, 0.18), MAT.copper)); lug.position.set(0, -0.32, s * 3.9); g.add(lug); }
   const arm = new THREE.Group(); arm.position.set(3.2, -1.3, 0); arm.rotation.z = -0.12; g.add(arm);
   const neck = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.72, 3.2, 48), MAT.copper)); neck.rotation.z = -Math.PI / 2; neck.position.x = 1.6; arm.add(neck);
@@ -486,22 +611,12 @@ function buildPortafilter() {
   grip.rotation.z = -Math.PI / 2; grip.position.x = 3.3; arm.add(grip);
   return g;
 }
-function buildSpouts() {
-  const g = new THREE.Group();
-  g.add(shadowed(new THREE.Mesh(lathe([[0.001, -3.55], [1.05, -3.55], [1.05, -3.85], [0.7, -4.1], [0.001, -4.12]], 64), MAT.copper)));
-  for (const s of [-1, 1]) {
-    const c = new THREE.CatmullRomCurve3([V3(s * 0.25, -3.95, 0), V3(s * 0.48, -4.35, 0), V3(s * 0.62, -4.78, 0)]);
-    g.add(shadowed(new THREE.Mesh(new THREE.TubeGeometry(c, 16, 0.2, 16), MAT.copper)));
-    const tip = shadowed(new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.05, 8, 24), MAT.copper)); tip.rotation.x = Math.PI / 2; tip.position.set(s * 0.62, -4.8, 0); g.add(tip);
-  }
-  return g;
-}
 function buildGroupHead() {
   const g = new THREE.Group();
   g.add(shadowed(new THREE.Mesh(lathe([[0.001, 0.28], [3.35, 0.28], [3.72, 0.38], [3.86, 0.7], [3.86, 2.6], [4.3, 3.0], [4.55, 3.4], [4.55, 12]], 160), MAT.chrome)));
   const gasket = new THREE.Mesh(new THREE.TorusGeometry(3.45, 0.12, 12, 96), new THREE.MeshStandardMaterial({ color: 0x141110, roughness: 0.7 })); gasket.rotation.x = Math.PI / 2; gasket.position.y = 0.3; g.add(gasket);
   const body = shadowed(new THREE.Mesh(new THREE.BoxGeometry(34, 14, 18), MAT.steelDark)); body.position.set(0, 17, -4); g.add(body);
-  const splash = shadowed(new THREE.Mesh(new THREE.PlaneGeometry(40, 30), MAT.steelDark), false, true); splash.position.set(0, -6, -9); g.add(splash);
+  const splash = shadowed(new THREE.Mesh(new THREE.PlaneGeometry(40, 30), MAT.backsplash), false, true); splash.position.set(0, -6, -9); g.add(splash);
   const tray = shadowed(new THREE.Mesh(new THREE.BoxGeometry(30, 1, 16), MAT.steelDark), false, true); tray.position.set(0, -16.0, 0); g.add(tray);
   const slotMat = new THREE.MeshStandardMaterial({ color: 0x0c0a09, roughness: 0.8 });
   for (let i = -7; i <= 7; i++) { const s = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 14), slotMat); s.position.set(i * 1.9, -15.46, 0); g.add(s); }
@@ -614,6 +729,17 @@ const accumQuad = new FullScreenQuad(new THREE.ShaderMaterial({
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
   fragmentShader: 'uniform sampler2D tSrc; uniform float uW; varying vec2 vUv; void main(){ gl_FragColor = vec4(texture2D(tSrc, vUv).rgb * uW, uW); }'
 }));
+// lens: a touch of lateral chromatic aberration towards the corners
+const lensRT = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType });
+const lensQuad = new FullScreenQuad(new THREE.ShaderMaterial({
+  uniforms: { tSrc: { value: null }, uK: { value: 0.0016 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+  fragmentShader: `uniform sampler2D tSrc; uniform float uK; varying vec2 vUv;
+    void main(){ vec2 d = vUv - 0.5; vec2 o = d * uK * dot(d, d) * 4.0;
+      gl_FragColor = vec4(texture2D(tSrc, vUv + o).r, texture2D(tSrc, vUv).g, texture2D(tSrc, vUv - o).b, 1.0); }`
+}));
+// sub-pixel camera jitter per sub-frame: the accumulation doubles as supersampling
+const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
 let gtao, bloom, outputPass;
 const DOF_STATE = { focus: 20, aperture: 0 };
 
@@ -665,7 +791,7 @@ const SET = { beans: new THREE.Group(), burrs: new THREE.Group(), dose: new THRE
 Object.values(SET).forEach(s => scene.add(s));
 const L = {};
 let cup, portafilter, grinder, tamper, tagline;
-let heroBeans, grindBeans, fragsI, groundsI, clumpsI, haze, puff, streams = [], dripsI, crownI, steam = [], sparks, tableBeans;
+let heroBeans, grindBeans, fragsI, groundsI, clumpsI, haze, puff, steam = [], sparks, tableBeans;
 const BEANS = [], GRIND = { beans: [], frags: [] }, DOSE = { parts: [] };
 
 async function build() {
@@ -689,6 +815,10 @@ async function build() {
   L.fill = new THREE.PointLight(0xffd6b0, 0, 0, 2); scene.add(L.fill);
   L.back = new THREE.PointLight(0xff8a30, 0, 0, 2); scene.add(L.back);
   L.glint = new THREE.PointLight(0xfff1dc, 0, 0, 2); scene.add(L.glint);
+  // softboxes for the liquid shots: broad, photographic highlights instead of point-light dots
+  RectAreaLightUniformsLib.init();
+  L.soft = new THREE.RectAreaLight(0xfff1e2, 0, 5, 9); scene.add(L.soft);
+  L.strip = new THREE.RectAreaLight(0xffc996, 0, 1.4, 14); scene.add(L.strip);
 
   const beanGeo = beanGeometry();
   const R = mulberry32(5), c = new THREE.Color();
@@ -752,15 +882,16 @@ async function build() {
   puff.userData.seed = Array.from({ length: 300 }, () => [R() * 6.283, R(), R()]);
   SET.dose.add(puff);
 
-  /* shot 4: machine */
+  /* shot 4: bottomless extraction */
   SET.machine.add(buildGroupHead());
-  SET.machine.add(buildSpouts());
-  for (let i = 0; i < 2; i++) { const m = new THREE.Mesh(new THREE.BufferGeometry(), MAT.espresso); m.frustumCulled = false; streams.push(m); SET.machine.add(m); }
-  dripsI = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 24, 16), MAT.drop, 24); dripsI.frustumCulled = false; scene.add(dripsI);
+  OBJ.film = new THREE.Mesh(polarDisk(200, 720), MAT.film); // child of the portafilter, hanging under the basket floor
+  OBJ.film.rotation.x = Math.PI; OBJ.film.scale.set(FILM.uRad.value, 1, FILM.uRad.value); OBJ.film.position.y = FLOOR_Y - 0.003;
+  OBJ.film.frustumCulled = false; OBJ.film.receiveShadow = true; portafilter.add(OBJ.film);
+  buildBeads(mulberry32(77));
+  OBJ.stream = buildStreamMesh(); SET.machine.add(OBJ.stream);
 
   cup = buildCup(logoTex); scene.add(cup.group);
   scene.add(portafilter);
-  crownI = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 16, 12), MAT.drop, 50); crownI.frustumCulled = false; scene.add(crownI);
 
   /* shot 5: table (Gallura granite, cork, saucer, myrtle, beans) */
   const granite = shadowed(new THREE.Mesh(new THREE.PlaneGeometry(90, 60, 1, 1), MAT.granite), false, true);
@@ -979,114 +1110,192 @@ function shotDose(t) {
   return cam;
 }
 
-/* ================================================================ shot: extraction */
+/* ================================================================ shot: bottomless extraction */
 const CUP_IN_MACHINE = V3(0, -15.36, 0);
-const SPOUT_TIP = [V3(-0.62, -4.86, 0), V3(0.62, -4.86, 0)];
-const level = t => lerp(0.95, FILL, smoother(T.extract + 0.25, T.cup - 0.15, t));
-const flow = t => smooth(T.extract + 0.46, T.extract + 0.7, t) * (1 - 0.65 * smooth(T.cup - 0.5, T.cup - 0.22, t)) * (t < T.cup - 0.2 ? 1 : 0);
-const EXTRACT_KEYS = [[0.0, [3.1, -4.1, 8.6], [0.0, -4.55, 0.0]], [0.72, [3.5, -5.8, 10.2], [0.0, -6.3, 0.0]], [1.56, [2.7, -6.9, 13.2], [0.0, -9.7, 0.0]], [2.06, [1.3, -6.7, 9.2], [0.0, -10.3, 0.0]], [T.cup - T.extract, [0.35, -7.4, 4.3], [0.0, -11.0, 0.0]]];
-const DRIPS = [[0, 0.08], [1, 0.22], [0, 0.33], [1, 0.41], [0, 2.3], [1, 2.33], [0, 2.4], [1, 2.45]].map(([s, d]) => [s, T.extract + d]);
-let cremaAngle = 0;
-function updateCrema(t, impacts) {
-  const L0 = level(t), rIn = interp(CUP_INNER, L0) - 0.02;
-  cremaAngle = -0.35 * t;
-  cup.crema.position.y = L0; cup.crema.rotation.y = cremaAngle; cup.crema.scale.set(rIn, 1, rIn);
-  const ca = Math.cos(-cremaAngle), sa = Math.sin(-cremaAngle);
-  const imps = impacts.map(im => ({ ...im, lx: (im.x * ca - im.z * sa) / rIn, lz: (im.x * sa + im.z * ca) / rIn }));
-  const pos = cup.crema.geometry.attributes.position, base = cup.base;
-  for (let i = 0; i < pos.count; i++) {
-    const ux = base[i * 3], uz = base[i * 3 + 2];
-    let h = 0;
-    for (const im of imps) {
-      const age = t - im.t; if (age < 0) continue;
-      const d = Math.hypot(ux - im.lx, uz - im.lz) * rIn;
-      if (im.steady) { h += -im.a * Math.exp(-d * d * 18) + 0.012 * im.a * 12 * Math.sin(d * 14 - t * 30) * Math.exp(-d * 1.5); continue; }
-      const front = 4.2 * age;
-      h += im.a * Math.exp(-age * 2.2) * Math.sin((d - front) * 12) * Math.exp(-Math.pow((d - front) / 0.7, 2));
-      h += -im.a * 1.6 * Math.exp(-d * d * 30) * Math.exp(-age * 9);
+const CUP_FLOOR = 0.86; // inside bottom of the cup (local y)
+// a parcel of espresso leaves the cone tip at v0 and falls under g (slow motion)
+const fallDist = tau => EX.v0 * tau + 0.5 * EX.g * tau * tau;
+const fallTime = d => (-EX.v0 + Math.sqrt(EX.v0 * EX.v0 + 2 * EX.g * Math.max(d, 0))) / EX.g;
+const coneK = lt => smoother(EX.cone, EX.cone + 0.5, lt);
+const tipRadius = lt => lerp(0.05, 0.12, smooth(EX.stream - 0.15, EX.stream + 0.6, lt));
+const tipPos = lt => V3(0.05 * N3(lt * 0.6, 1.3, 0.2), FLOOR_Y - 0.004 - EX.coneLen * Math.pow(coneK(lt), 0.85), 0.05 * N3(lt * 0.6, 4.1, 0.7));
+const HIT = EX.stream + fallTime(tipPos(EX.stream).y - (CUP_IN_MACHINE.y + CUP_FLOOR)); // first coffee reaches the cup
+const cupLevel = lt => CUP_FLOOR + 2.2 * Math.pow(smooth(HIT, HIT + 1.4, lt), 0.8);
+
+// drops on the basket floor, one per chosen hole of the hexagonal pattern (film coordinates = floor x, -floor y)
+function buildBeads(R) {
+  const sites = [];
+  for (let n = -12; n <= 12; n++) for (let m = -16; m <= 16; m++) for (const k of [0, 0.5]) {
+    const x = 0.13 * (m + k), y = 0.13 * Math.sqrt(3) * (n + k), r = Math.hypot(x, y);
+    if (r < 1.9) sites.push({ x, z: -y, r, o: R() });
+  }
+  sites.sort((a, b) => a.o - b.o);
+  OBJ.beads = sites.slice(0, 230).map(b => ({
+    x: b.x, z: b.z, s: 0.045 + 0.025 * R(),
+    te: -0.3 + 1.0 * Math.pow(R(), 0.9) * (0.6 + 0.4 * b.r / 1.9), // a few already out when the shot opens, the centre goes first
+    k: 4 + 6 * R()
+  }));
+  const tex = new THREE.DataTexture(new Float32Array(256 * 4), 256, 1, THREE.RGBAFormat, THREE.FloatType);
+  tex.minFilter = tex.magFilter = THREE.NearestFilter; tex.needsUpdate = true;
+  FILM.uBeadTex.value = tex; FILM.uBeadN.value = OBJ.beads.length;
+}
+function updateFilm(t, lt) {
+  const d = FILM.uBeadTex.value.image.data;
+  OBJ.beads.forEach((b, i) => {
+    const age = lt - b.te;
+    d[i * 4] = b.x; d[i * 4 + 1] = b.z; d[i * 4 + 2] = age <= 0 ? 0 : 1 + b.k * Math.pow(age, 0.8); d[i * 4 + 3] = b.s;
+  });
+  FILM.uBeadTex.value.needsUpdate = true;
+  FILM.uCov.value = 2.6 * smoother(0.3, 0.95, lt); // by the time the cone hangs the floor is all wet
+  FILM.uDrain.value = 2.6 * smooth(0.45, 0.95, lt);
+  FILM.uHs.value = lerp(0.07, 0.09, smooth(0.3, 1.2, lt));
+  FILM.uPool.value = 0.16 * smooth(0.5, 1.0, lt);
+  FILM.uTime.value = t;
+}
+
+// cone + stream as one tube around a falling centreline
+const SR = { radial: 48, cone: 72, body: 220, cap: 14 };
+function buildStreamMesh() {
+  const rings = SR.cone + SR.body + SR.cap, n = rings * (SR.radial + 1);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('aFlow', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  const idx = [];
+  for (let i = 0; i < rings - 1; i++) for (let j = 0; j < SR.radial; j++) {
+    const a = i * (SR.radial + 1) + j, b = a + SR.radial + 1;
+    idx.push(a, a + 1, b, b, a + 1, b + 1);
+  }
+  g.setIndex(idx);
+  const m = new THREE.Mesh(g, MAT.liquid); m.frustumCulled = false; m.receiveShadow = true;
+  return m;
+}
+function updateStream(t, lt, surfY) {
+  const rings = [];
+  const ck = coneK(lt), Lc = EX.coneLen * Math.pow(ck, 0.85), Rb = lerp(0.25, 0.6, ck), rs = tipRadius(lt);
+  const base = V3(0, FLOOR_Y + 0.03, 0), tip = tipPos(lt);
+  // the cone: a hanging teat, flat where it meets the sheet, vertical where it turns into the stream
+  for (let k = 0; k < SR.cone; k++) {
+    const s = Math.pow(k / (SR.cone - 1), 2), r = rs + (Rb - rs) * Math.pow(1 - Math.sqrt(s), 2);
+    // never perfectly round: slow lobes, stronger near the top
+    const w = 0.03 + 0.07 * Math.sqrt(1 - s), wob = { a2: w * N3(t * 0.7, 1.1, 0.3), p2: 2.0 * N3(t * 0.4, 2.2, 0.9), a3: 0.6 * w * N3(t * 0.9, 3.3, 1.7), p3: 3.0 * N3(t * 0.5, 4.4, 2.1) };
+    rings.push({ c: base.clone().lerp(tip, s), r, lab: t - 0.6 * (1 - s), tw: 0.8 * (1 - s), eq: Math.min(r, Math.max(s * (Lc + 0.03) - 0.03, 0) + 0.02), wob });
+  }
+  // the stream: each ring is the liquid that left the tip tau seconds ago
+  const tauFront = lt - EX.stream, tauSurf = fallTime(tip.y - surfY + 0.3);
+  const reached = tauFront >= tauSurf, tauEnd = tauFront > 0 ? Math.min(tauFront, tauSurf) : 0;
+  if (tauFront <= 0) { // before the stream: a drop swelling at the tip
+    const R0 = rs * (1 + 0.8 * smooth(EX.stream - 0.35, EX.stream, lt)) * smooth(EX.cone, EX.cone + 0.3, lt);
+    for (let k = 0; k < SR.body; k++) {
+      const u = k / (SR.body - 1);
+      rings.push({ c: tip.clone().add(V3(0, -1.5 * R0 * u, 0)), r: rs + (R0 - rs) * Math.sin(Math.PI / 2 * u), lab: t, tw: 0, eq: R0 });
     }
-    h += 0.04 * Math.pow(Math.hypot(ux, uz), 8);
-    pos.setY(i, h);
+  } else {
+    for (let k = 0; k < SR.body; k++) {
+      const tau = tauEnd * Math.pow(k / (SR.body - 1), 1.1), lab = t - tau, ltd = lt - tau;
+      const tp = tipPos(ltd), d = fallDist(tau);
+      // it keeps the tip's position and a small sideways velocity from when it left
+      const vx = 0.13 * N3(ltd * 1.3, 7.1, 0.4), vz = 0.13 * N3(ltd * 1.3, 2.6, 5.3);
+      const thin = Math.sqrt(EX.v0 / (EX.v0 + EX.g * tau)); // continuity: faster means thinner
+      const bead = (0.025 * smooth(0, 0.1, tau) + 0.11 * smooth(0.2, 0.7, tau)) * Math.sin(lab * 2 * Math.PI * 24 + 1.7 * N3(lab * 3, 1, 1)); // Rayleigh-Plateau
+      let r = tipRadius(ltd) * thin * (1 + bead);
+      if (!reached) r *= 1 + 0.55 * smooth(tauEnd - 0.07, tauEnd, tau); // the first drop leads the stream
+      // just below the tip the stream still oscillates between oval shapes, damped within a few tenths of a second
+      const ov = 0.07 * Math.exp(-tau / 0.12);
+      rings.push({ c: V3(tp.x + vx * tau, tp.y - d, tp.z + vz * tau), r, lab, tw: 0.9 * tau, eq: r, wob: { a2: ov, p2: lab * 14, a3: 0, p3: 0 } });
+    }
   }
-  pos.needsUpdate = true; cup.crema.geometry.computeVertexNormals();
-}
-function placeDrops(list) {
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion();
-  for (let i = 0; i < dripsI.count; i++) {
-    const d = list[i];
-    if (!d) m.compose(V3(0, -999, 0), q, V3(0, 0, 0)); else m.compose(d.p, q.identity(), V3(d.r, d.r * (d.stretch || 1), d.r));
-    dripsI.setMatrixAt(i, m);
+  // rounded end
+  const last = rings[rings.length - 1], prev = rings[rings.length - 2];
+  const axis = last.c.clone().sub(prev.c); if (axis.lengthSq() < 1e-10) axis.set(0, -1, 0); axis.normalize();
+  for (let k = 1; k <= SR.cap; k++) {
+    const ph = (k / SR.cap) * Math.PI / 2;
+    rings.push({ c: last.c.clone().addScaledVector(axis, last.r * Math.sin(ph)), r: last.r * Math.cos(ph), lab: last.lab, tw: last.tw, eq: last.r, ph, axis });
   }
-  dripsI.instanceMatrix.needsUpdate = true;
+  // write the tube
+  const g = OBJ.stream.geometry, P = g.attributes.position.array, Nn = g.attributes.normal.array, F = g.attributes.aFlow.array;
+  const Tg = V3(), B1 = V3(), B2 = V3(), u = V3(), ut = V3(), nn = V3(), Z = V3(0, 0, 1);
+  rings.forEach((ri, i) => {
+    const a = rings[Math.max(i - 1, 0)], b = rings[Math.min(i + 1, rings.length - 1)];
+    Tg.copy(b.c).sub(a.c); const len = Tg.length();
+    if (len < 1e-6) Tg.copy(ri.axis || V3(0, -1, 0)); else Tg.divideScalar(len);
+    const dr = ri.ph !== undefined ? 0 : clamp(len < 1e-6 ? 0 : (b.r - a.r) / len, -25, 25);
+    B1.crossVectors(Tg, Z).normalize(); B2.crossVectors(Tg, B1);
+    for (let j = 0; j <= SR.radial; j++) {
+      const th = (j / SR.radial) * Math.PI * 2, o = (i * (SR.radial + 1) + j) * 3;
+      u.copy(B1).multiplyScalar(Math.cos(th)).addScaledVector(B2, Math.sin(th));
+      const wb = ri.wob, A = wb ? wb.a2 * Math.sin(2 * th + wb.p2) + wb.a3 * Math.sin(3 * th + wb.p3) : 0;
+      const dA = wb ? 2 * wb.a2 * Math.cos(2 * th + wb.p2) + 3 * wb.a3 * Math.cos(3 * th + wb.p3) : 0, rr = ri.r * (1 + A);
+      P[o] = ri.c.x + rr * u.x; P[o + 1] = ri.c.y + rr * u.y; P[o + 2] = ri.c.z + rr * u.z;
+      if (ri.ph !== undefined) nn.copy(u).multiplyScalar(Math.cos(ri.ph)).addScaledVector(ri.axis, Math.sin(ri.ph));
+      else { // n ~ u - (dr/dtheta / r) u_theta - dr/ds T
+        ut.copy(B2).multiplyScalar(Math.cos(th)).addScaledVector(B1, -Math.sin(th));
+        nn.copy(u).addScaledVector(ut, -dA / (1 + A)).addScaledVector(Tg, -dr * (1 + A)).normalize();
+      }
+      Nn[o] = nn.x; Nn[o + 1] = nn.y; Nn[o + 2] = nn.z;
+      F[o] = ri.lab; F[o + 1] = j / SR.radial + ri.tw / (2 * Math.PI); F[o + 2] = ri.eq;
+    }
+  });
+  g.attributes.position.needsUpdate = g.attributes.normal.needsUpdate = g.attributes.aFlow.needsUpdate = true;
+  // where the stream meets the coffee in the cup
+  for (let i = SR.cone; i < rings.length - 1; i++) if (rings[i].c.y >= surfY && rings[i + 1].c.y < surfY) {
+    const k = (rings[i].c.y - surfY) / (rings[i].c.y - rings[i + 1].c.y);
+    return rings[i].c.clone().lerp(rings[i + 1].c, k);
+  }
+  return null;
 }
+
+const EXTRACT_KEYS = [
+  [0.0, [-3.6, -7.6, 4.6], [0.15, -2.75, 0.1]],
+  [0.95, [-3.1, -7.2, 5.5], [0.1, -3.0, 0.0]],
+  [1.55, [-2.4, -6.6, 9.0], [0.0, -5.0, 0.0]],
+  [2.2, [-1.4, -6.4, 12.4], [0.0, -7.7, 0.0]],
+  [T.cup - T.extract, [-0.7, -3.4, 7.4], [0.0, -11.4, 0.0]]
+];
 function shotExtract(t) {
   const lt = t - T.extract;
   portafilter.position.set(0, 0, 0); portafilter.rotation.set(0, 0.35, 0);
   cup.group.position.copy(CUP_IN_MACHINE); cup.group.rotation.set(0, 0.9, 0); cup.decalU.uReveal.value = 0;
-  const surfY = CUP_IN_MACHINE.y + level(t), fl = flow(t);
-  streams.forEach((m, i) => {
-    if (fl <= 0.002) { m.visible = false; return; }
-    m.visible = true;
-    const pts = [], radii = [], tip = SPOUT_TIP[i], N = 30;
-    for (let k = 0; k < N; k++) {
-      const s = k / (N - 1), y = lerp(tip.y, surfY + 0.02, s);
-      pts.push(V3(lerp(tip.x, Math.sign(tip.x) * 0.14, Math.pow(s, 0.65)) + 0.03 * N3(i * 7, y * 0.8, t * 2.2) * s, y, 0.03 * N3(i * 7 + 3, y * 0.8, t * 2.0) * s));
-      radii.push(fl * (0.11 * (1 - 0.42 * Math.pow(s, 0.6)) + 0.014 * Math.exp(-s * 16)) * (1 + 0.035 * s * Math.sin(y * 11 + t * 24)));
-    }
-    m.geometry.dispose(); m.geometry = taperTube(pts, radii, 20);
-  });
-  TEX.stripe.offset.x = -t * 1.35; TEX.stripe.offset.y = t * 0.06;
-  const list = [];
-  for (const [si, t0] of DRIPS) {
-    const age = t - t0; if (age < 0 || age > 0.9) continue;
-    const tip = SPOUT_TIP[si], form = 0.16, g = 70;
-    if (age < form) { const r = 0.13 * smooth(0, form, age); list.push({ p: V3(tip.x, tip.y - r * 0.9, 0), r, stretch: 1.25 }); continue; }
-    const fa = age - form, y = tip.y - 0.12 - 0.5 * g * fa * fa - 1.2 * fa;
-    if (y < surfY) continue;
-    list.push({ p: V3(tip.x * (1 - 0.3 * fa), y, 0), r: 0.11, stretch: 1.0 + Math.min(0.9, fa * 6) });
-  }
-  placeDrops(list);
-  updateCrema(t, [
-    { t: DRIPS[0][1] + 0.5, x: -0.4, z: 0.1, a: 0.06 }, { t: DRIPS[1][1] + 0.5, x: 0.4, z: -0.1, a: 0.06 },
-    ...(fl > 0 ? [{ t: T.extract + 0.5, x: -0.14, z: 0, a: 0.05 * fl, steady: true }, { t: T.extract + 0.5, x: 0.14, z: 0, a: 0.05 * fl, steady: true }] : [])
-  ]);
-  L.key.position.set(-10, 6, 12); L.key.target.position.set(0, -8, 0); L.key.intensity = 1100; L.key.angle = 0.5;
-  L.rim.position.set(5, -6, -6); L.rim.intensity = 260;
-  L.fill.position.set(8, -10, 10); L.fill.intensity = 60;
-  L.back.position.set(-1.0, -7.0, -6.5); L.back.intensity = 120;
-  setEnv(envFacing(0.13, [2.7, -6.9, 13.2], [0, -9.7, 0]), bgFacing(0.13, [2.7, -6.9, 13.2], [0, -9.7, 0]), 0.3, 0.6);
-  renderer.toneMappingExposure = 1.0;
+  updateFilm(t, lt);
+  const L0 = cupLevel(lt), surfY = CUP_IN_MACHINE.y + L0, rIn = interp(CUP_INNER, L0) - 0.02;
+  OBJ.stream.visible = lt > EX.cone - 0.05;
+  const hit = OBJ.stream.visible ? updateStream(t, lt, surfY) : null;
+  LIQ.uTime.value = t; LIQ.uFoam.value = lerp(-0.1, 0.25, smooth(EX.cone, 2.4, lt)); // more crema streaks as the shot runs
+  MAT.liquid.attenuationDistance = lerp(0.045, 0.06, smooth(EX.stream, 2.6, lt)); // first coffee is darker, then it turns golden
+  // crema
+  cup.crema.visible = lt > HIT;
+  cup.crema.position.y = L0; cup.crema.rotation.y = 0; cup.crema.scale.set(rIn, 1, rIn);
+  cup.crema.updateMatrixWorld(true);
+  if (hit) { const lp = cup.crema.worldToLocal(hit.clone()); CREMA.uImp.value.set(lp.x * rIn, lp.z * rIn); }
+  CREMA.uImpK.value = smooth(HIT, HIT + 0.15, lt); CREMA.uR.value = rIn; CREMA.uTime.value = t; CREMA.uDrift.value = 0.55; CREMA.uTwist.value = 0.8;
+  // lights: a softbox below the portafilter, a strip behind on the right, a warm backlight on the steel behind the stream
+  L.key.position.set(-9, -3, 10); L.key.target.position.set(0, -7, 0); L.key.intensity = 300; L.key.angle = 0.5;
+  L.soft.position.set(-3, -10.5, 7); L.soft.lookAt(0, -2.6, 0); L.soft.intensity = 2.2;
+  L.strip.position.set(5.5, -6, -3.5); L.strip.lookAt(0, -6, 0); L.strip.intensity = 6;
+  L.rim.position.set(4, -1.5, -3); L.rim.intensity = 120;
+  L.fill.position.set(6, -9, 10); L.fill.intensity = 40;
+  L.back.position.set(0.6, -6.5, -8.5); L.back.intensity = 70; // hot spot on the steel behind the stream
   const camPos = V3(...hermite(EXTRACT_KEYS, lt, k => k[1])), camTgt = V3(...hermite(EXTRACT_KEYS, lt, k => k[2]));
-  const fov = lerp(26, 40, smooth(2.06, T.cup - T.extract, lt));
-  DOF_STATE.focus = camPos.distanceTo(V3(0, lerp(-4.7, surfY, smooth(0.5, 1.6, lt)), 0)); DOF_STATE.aperture = 22;
-  return handheld(lookCam(camPos, camTgt, 0.03 * Math.sin(lt * 1.5), fov), t, 0.035);
+  setEnv(envFacing(0.13, camPos.toArray(), camTgt.toArray()), bgFacing(0.13, camPos.toArray(), camTgt.toArray()), 0.15, 0.3);
+  renderer.toneMappingExposure = 1.0;
+  // focus: the basket floor, then the cone tip, the falling stream and finally the coffee in the cup
+  const f1 = V3(0.1, FLOOR_Y - 0.05, 0), f2 = tipPos(lt), f3 = V3(0, -7.5, 0), f4 = hit || V3(0, surfY, 0);
+  const fp = f1.clone().lerp(f2, smooth(0.85, 1.4, lt)).lerp(f3, smooth(1.4, 2.0, lt)).lerp(f4, smooth(2.1, 2.6, lt));
+  DOF_STATE.focus = camPos.distanceTo(fp); DOF_STATE.aperture = lerp(26, 20, smooth(1.0, 2.0, lt));
+  const fov = lerp(30, 31, smooth(1.2, 2.2, lt));
+  return handheld(lookCam(camPos, camTgt, 0.03 * Math.sin(lt * 1.3), fov), t, 0.03);
 }
 
 /* ================================================================ shot: crema, crane, logo */
 const CUP_ON_TABLE = V3(0, 1.21, 0);
 const CREMA_Y = 1.21 + FILL;
-const CROWNS = [{ t: T.cup + 0.06, x: 0.45, z: 0.25 }, { t: T.cup + 0.42, x: -0.75, z: -0.45 }];
 function shotCup(t) {
   const lt = t - T.cup;
   cup.group.position.copy(CUP_ON_TABLE); cup.group.rotation.set(0, 0, 0);
-  updateCrema(t, CROWNS.map(c => ({ t: c.t, x: c.x, z: c.z, a: 0.07 })));
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion();
-  let k = 0;
-  CROWNS.forEach((c, ci) => {
-    const age = (t - c.t) * 0.7;
-    for (let i = 0; i < 22; i++) {
-      const a = (i / 22) * Math.PI * 2 + ci, sp = 3.2 + ((i * 7) % 5) * 0.4, vy = 7.5 + ((i * 3) % 4);
-      let s = 0; const p = V3(0, -999, 0);
-      if (age > 0) { const y = CREMA_Y + vy * age - 26 * age * age; if (y > CREMA_Y - 0.05) { s = 0.03 * (1 - smooth(0.25, 0.4, age)) + 0.01; p.set(c.x + Math.cos(a) * sp * age * 0.32, y, c.z + Math.sin(a) * sp * age * 0.32); } }
-      m.compose(p, q, V3(s, s * 1.3, s)); crownI.setMatrixAt(k++, m);
-    }
-    const ja = age - 0.12; let js = 0; const jp = V3(0, -999, 0);
-    if (ja > 0) { const y = CREMA_Y + 9 * ja - 26 * ja * ja; if (y > CREMA_Y) { js = 0.065; jp.set(c.x, y, c.z); } }
-    m.compose(jp, q, V3(js, js * 2.2, js)); crownI.setMatrixAt(k++, m);
-  });
-  for (; k < crownI.count; k++) { m.compose(V3(0, -999, 0), q, V3(0, 0, 0)); crownI.setMatrixAt(k, m); }
-  crownI.instanceMatrix.needsUpdate = true;
-  placeDrops([]);
+  // settled crema, turning slowly
+  const rIn = interp(CUP_INNER, FILL) - 0.02;
+  cup.crema.visible = true; cup.crema.position.y = FILL; cup.crema.rotation.y = -0.12 * lt; cup.crema.scale.set(rIn, 1, rIn);
+  CREMA.uImp.value.set(0.25, -0.15); CREMA.uImpK.value = 0; CREMA.uR.value = rIn; CREMA.uTime.value = t; CREMA.uDrift.value = 0.04; CREMA.uTwist.value = 0.3;
 
   const rv = smooth(T.reveal[0], T.reveal[1], t);
   cup.decalU.uReveal.value = rv; cup.decalU.uTime.value = t;
@@ -1119,12 +1328,12 @@ function shotCup(t) {
   const cam = orbitCam(tgt, d, el, az, lt < 0.6 ? 0.15 * lt : 0.09 * (1 - k1), lerp(36, 26, k1));
   const gs = smooth(9.7, 10.7, t);
   L.glint.position.set(lerp(-12, 12, gs), 6.5, 9); L.glint.intensity = 450 * Math.sin(Math.PI * gs);
-  L.key.position.set(lerp(-5, -16, k1), lerp(40, 26, k1), lerp(6, 20, k1)); L.key.target.position.set(0, lerp(5, 2, k1), 0); L.key.intensity = lerp(1600, 2100, k1); L.key.angle = 0.42;
+  L.key.position.set(lerp(-5, -16, k1), lerp(40, 26, k1), lerp(6, 20, k1)); L.key.target.position.set(0, lerp(5, 2, k1), 0); L.key.intensity = lerp(1000, 2100, k1); L.key.angle = 0.42;
   L.rim.position.set(9, 13, -14); L.rim.intensity = 700;
   L.fill.position.set(17, 6, 18); L.fill.intensity = 110;
   L.back.position.set(-7, 9, -12); L.back.intensity = 300;
   setEnv(envFacing(0.575, [0, 9, 42], [0, 2.4, 0]), bgFacing(0.575, [0, 9, 42], [0, 2.4, 0]), lerp(0.0, 0.34, k1), 0.65);
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = lerp(0.8, 1.0, k1);
   DOF_STATE.focus = cam.pos.distanceTo(k1 < 0.5 ? V3(0, CREMA_Y, 0) : V3(0, 1.21 + LOGO_Y, 3.25)); DOF_STATE.aperture = lerp(14, 32, k1);
   return handheld(cam, t, 0.03 * k1);
 }
@@ -1140,10 +1349,9 @@ function update(t) {
   SET.machine.visible = shot === 'extract';
   SET.table.visible = shot === 'cup';
   portafilter.visible = shot === 'dose' || shot === 'extract';
+  OBJ.film.visible = shot === 'extract';
   cup.group.visible = shot === 'extract' || shot === 'cup';
-  crownI.visible = shot === 'cup';
-  dripsI.visible = shot === 'extract';
-  L.glint.intensity = 0;
+  L.glint.intensity = 0; L.soft.intensity = 0; L.strip.intensity = 0;
   const cam = { beans: shotBeans, burrs: shotBurrs, dose: shotDose, extract: shotExtract, cup: shotCup }[shot](t);
   camera.position.copy(cam.pos); camera.quaternion.copy(cam.quat);
   camera.fov = cam.fov; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
@@ -1153,9 +1361,10 @@ function renderSub() {
   renderer.setRenderTarget(sceneRT); renderer.clear(); renderer.render(scene, camera);
   let src = sceneRT;
   if (gtao) {
-    const vis = steam.map(sp => sp.visible); steam.forEach(sp => (sp.visible = false)); // sprites would pollute the normal buffer
+    // sprites would pollute the normal buffer; the liquids are shaped on the GPU, the AO pass would see them undisplaced
+    const hide = [...steam, OBJ.film, OBJ.stream], vis = hide.map(o => o.visible); hide.forEach(o => (o.visible = false));
     gtao.render(renderer, aoRT, sceneRT); src = aoRT;
-    steam.forEach((sp, i) => (sp.visible = vis[i]));
+    hide.forEach((o, i) => (o.visible = vis[i]));
   }
   const u = dofQuad.material.uniforms;
   u.tColor.value = src.texture; u.uFocus.value = DOF_STATE.focus; u.uAperture.value = DOF ? DOF_STATE.aperture * SCALE : 0;
@@ -1170,13 +1379,16 @@ function renderFrame(i) {
     const off = MB === 1 ? 0 : ((k + 0.5) / MB - 0.5) * SHUTTER / FPS;
     const t = clamp(t0 + off, a, b - 1e-4);
     update(t);
+    if (MB > 1) { const h = (i * MB + k) % 64 + 1; camera.setViewOffset(W, H, halton(h, 2) - 0.5, halton(h, 3) - 0.5, W, H); }
     dofQuad.material.uniforms.uSeed.value = (i * 13 + k * 7) % 997;
     renderSub();
     accumQuad.material.uniforms.tSrc.value = dofRT.texture; accumQuad.material.uniforms.uW.value = 1 / MB;
     renderer.setRenderTarget(accumRT); renderer.autoClear = false; accumQuad.render(renderer); renderer.autoClear = true;
   }
+  lensQuad.material.uniforms.tSrc.value = accumRT.texture;
+  renderer.setRenderTarget(lensRT); lensQuad.render(renderer);
   outputPass.renderToScreen = true;
-  outputPass.render(renderer, null, accumRT);
+  outputPass.render(renderer, null, lensRT);
   // overlay at the frame's centre time
   tagline.material.opacity = smooth(T.tag, T.tag + 0.45, t0);
   tagline.position.set(0, -H / 2 + H * 0.255 + 16 * SCALE * (1 - smooth(T.tag, T.tag + 0.6, t0)), 0);

@@ -107,12 +107,13 @@ async function runPreview(server) {
 }
 
 /* ---------------------------------------------------------------- soundtrack (FFmpeg sources + filters only)
-   Edit points: beans 0, burrs 1.2, dosing 2.25, tamp 3.62, extraction 3.95, cup 6.45, crane 7.15-8.25, logo 8.3, tagline 9.3 */
+   Edit points (keep in step with T and EX in scene.js): beans 0, burrs 1.2, dosing 2.25, tamp 3.62, bottomless extraction 3.95
+   (stream leaves the cone at 4.95, first coffee in the cup at 5.74), cup 6.75, crane 7.15-8.25, logo 8.3, tagline 9.3 */
 const reed = f => `(sin(2*PI*${f}*t)+0.35*sin(4*PI*${f}*t)+0.6*sin(6*PI*${f}*t)+0.2*sin(8*PI*${f}*t)+0.32*sin(10*PI*${f}*t)+0.12*sin(12*PI*${f}*t)+0.18*sin(14*PI*${f}*t))`;
-function launeddasMelody() { // mancosa line over the tumbu drone, in A
+function launeddasMelody(start) { // mancosa line over the tumbu drone, in A
   const N = { A4: 440, B4: 493.88, C5s: 554.37, D5: 587.33, E5: 659.26, F5s: 739.99 };
   const seq = ['E5', 'C5s', 'D5', 'E5', 'F5s', 'E5', 'D5', 'C5s', 'E5', 'C5s', 'D5', 'E5', 'C5s', 'B4', 'A4', 'C5s', 'E5', 'F5s', 'E5', 'D5', 'C5s', 'B4', 'C5s', 'D5', 'E5', 'D5', 'C5s', 'B4', 'A4', 'B4'];
-  const start = 6.55, step = 0.105;
+  const step = 0.105;
   const terms = seq.map((n, i) => {
     const s = (start + i * step).toFixed(3), e = (start + i * step + step * 0.93).toFixed(3);
     return `if(between(t,${s},${e}),min(1,(t-${s})*220)*min(1,(${e}-t)*140)*${reed(N[n])},0)`;
@@ -122,7 +123,7 @@ function launeddasMelody() { // mancosa line over the tumbu drone, in A
   return terms.join('+');
 }
 function audioGraph() {
-  const T = DUR, BURRS = 1.2, DOSE = 2.25, TAMP = 3.62, EXTRACT = 3.95, CUP = 6.45, REVEAL = 8.3, TAG = 9.3;
+  const T = DUR, BURRS = 1.2, DOSE = 2.25, TAMP = 3.62, EXTRACT = 3.95, HIT = 5.74, CUP = 6.75, REVEAL = 8.3, TAG = 9.3;
   return [
     `anoisesrc=d=${T}:c=brown:r=48000:a=0.6:seed=2,lowpass=f=700,volume='0.35*exp(-pow((t-0.5)/0.6,2))':eval=frame[air]`,
     `aevalsrc='0.1*between(t,${BURRS},${DOSE})*min(1,(t-${BURRS})*20)*(sin(2*PI*(115*(t-${BURRS})+308*pow(max(t-${BURRS}-0.37,0),3)))+0.5*sin(4*PI*(115*(t-${BURRS})+308*pow(max(t-${BURRS}-0.37,0),3)))+0.33*sin(6*PI*(115*(t-${BURRS})+308*pow(max(t-${BURRS}-0.37,0),3))))':s=48000:d=${T},lowpass=f=2600[motor]`,
@@ -133,10 +134,10 @@ function audioGraph() {
     `aevalsrc='if(gte(t,${TAMP}),0.9*sin(2*PI*(62*(t-${TAMP})+40*(1-exp(-30*(t-${TAMP})))/30))*exp(-7*(t-${TAMP})),0)':s=48000:d=${T}[thud]`,
     `anoisesrc=d=${T}:c=white:r=48000:a=1:seed=8,bandpass=f=3200:width_type=o:w=1.5,volume='if(gte(t,${TAMP}),0.75*exp(-60*(t-${TAMP})),0)':eval=frame[click]`,
     `aevalsrc='0.065*between(t,${EXTRACT},${CUP})*min(1,(t-${EXTRACT})*10)*min(1,(${CUP}-t)*10)*(sin(2*PI*50*t)+0.6*sin(2*PI*100*t)+0.35*sin(2*PI*150*t))':s=48000:d=${T},lowpass=f=500[pump]`,
-    `anoisesrc=d=${T}:c=pink:r=48000:a=0.7:seed=9,bandpass=f=850:width_type=o:w=1.4,volume='0.48*between(t,${EXTRACT + 0.46},${CUP - 0.2})*min(1,(t-${EXTRACT + 0.46})*5)*min(1,(${CUP - 0.2}-t)*4)*(0.55+0.45*sin(2*PI*6.3*t)*sin(2*PI*2.7*t))':eval=frame,tremolo=f=13:d=0.35[trickle]`,
-    `aevalsrc='${[EXTRACT + 0.58, EXTRACT + 0.72, CUP + 0.06, CUP + 0.42].map(t0 => `if(gte(t,${t0}),0.36*sin(2*PI*(820*(t-${t0})-3400*pow(t-${t0},2)))*exp(-38*(t-${t0})),0)`).join('+')}':s=48000:d=${T}[drips]`,
+    `anoisesrc=d=${T}:c=pink:r=48000:a=0.7:seed=9,bandpass=f=850:width_type=o:w=1.4,volume='0.48*between(t,${HIT},${CUP - 0.02})*min(1,(t-${HIT})*3)*min(1,(${CUP - 0.02}-t)*12)*(0.55+0.45*sin(2*PI*6.3*t)*sin(2*PI*2.7*t))':eval=frame,tremolo=f=13:d=0.35[trickle]`,
+    `aevalsrc='if(gte(t,${HIT}),0.3*sin(2*PI*(700*(t-${HIT})-2600*pow(t-${HIT},2)))*exp(-32*(t-${HIT})),0)':s=48000:d=${T}[drips]`,
     `aevalsrc='(0.03+0.06*min(1,t/${CUP})+0.035*between(t,${REVEAL},${T}))*min(1,(${T}-t)*2.5)*(${reed(110)}+0.8*${reed(110.35)}+0.45*${reed(220)})':s=48000:d=${T},lowpass=f=1800,equalizer=f=700:width_type=o:w=1.2:g=4[drone]`,
-    `aevalsrc='0.08*(${launeddasMelody()})':s=48000:d=${T},highpass=f=250,equalizer=f=1250:width_type=o:w=1:g=5,lowpass=f=6500,aecho=0.6:0.35:90:0.25[melody]`,
+    `aevalsrc='0.08*(${launeddasMelody(CUP + 0.1)})':s=48000:d=${T},highpass=f=250,equalizer=f=1250:width_type=o:w=1:g=5,lowpass=f=6500,aecho=0.6:0.35:90:0.25[melody]`,
     `aevalsrc='${[[REVEAL, 880], [REVEAL + 0.18, 1318.51], [REVEAL + 0.4, 1760], [REVEAL + 0.68, 2217.46], [TAG, 1318.51]].map(([t0, f]) => `if(gte(t,${t0}),0.11*(sin(2*PI*${f}*(t-${t0}))+0.4*sin(2*PI*${f * 2.76}*(t-${t0})))*exp(-2.6*(t-${t0})),0)`).join('+')}':s=48000:d=${T},aecho=0.7:0.5:120|240:0.3|0.2[chime]`,
     `aevalsrc='if(gte(t,${TAG}),0.7*(sin(2*PI*44*(t-${TAG}))+0.4*sin(2*PI*88*(t-${TAG})))*exp(-1.3*(t-${TAG}))*min(1,(t-${TAG})*40),0)':s=48000:d=${T}[hit]`,
     `[air][motor][crunch][whoosh][pour][thud][click][pump][trickle][drips][drone][melody][chime][hit]amix=inputs=14:normalize=0,` +
