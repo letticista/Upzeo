@@ -1,0 +1,56 @@
+# Sardinian Coffee Corner · reel 3D
+
+Questa cartella contiene due video verticali per Reels (1080×1920, 60 fps), generati interamente da codice. La scena 3D è fatta in Three.js e renderizzata fotogramma per fotogramma in Chromium. FFmpeg si occupa di color grading, audio sintetizzato e codifica H.264.
+
+| Versione | Script | Output | Durata |
+|---|---|---|---|
+| v1 · logo 3D cromato | `render.mjs` | `sardinian_coffee_reveal.mp4` | 6 s |
+| v2 · dalla macinatura alla tazza col logo | `v2/render.mjs` | `sardinian_coffee_reveal_v2.mp4` | 8 s |
+
+## Renderizzare la v2 sul tuo computer (con la scheda video)
+
+La parte lenta è il rendering 3D, non la codifica. Con una GPU vera Chromium disegna ogni fotogramma in una frazione di secondo, quindi i 480 fotogrammi richiedono pochi minuti invece di circa 40.
+
+### Cosa serve
+
+- **Node.js 18 o superiore** (consigliata la 22 LTS): <https://nodejs.org>
+- **FFmpeg** nel PATH:
+  - Windows: `winget install Gyan.FFmpeg` (poi riapri il terminale)
+  - macOS: `brew install ffmpeg`
+  - Linux: `sudo apt install ffmpeg`
+- Circa **4 GB liberi** su disco per i fotogrammi temporanei, che vengono cancellati alla fine.
+
+### Comandi
+
+```bash
+git clone https://github.com/letticista/Upzeo.git
+cd Upzeo
+git checkout ccr-7ee232c1-yzdpt6
+cd sardinian-coffee
+npm install
+npx playwright install chromium
+npm run render:v2
+```
+
+Si apre una finestra di Chromium che usa la tua scheda video: lasciala aperta finché il terminale non scrive `wrote …sardinian_coffee_reveal_v2.mp4`. Il video finito si trova in `sardinian-coffee/sardinian_coffee_reveal_v2.mp4`.
+
+### Opzioni utili
+
+| Comando | Cosa fa |
+|---|---|
+| `npm run preview:v2 -- 0,240,479 0.5` | Salva solo alcuni fotogrammi (a metà risoluzione) in `v2/preview/` per un controllo veloce |
+| `npm run render:v2 -- --workers=2` | Due finestre in parallelo, se la scheda video regge |
+| `npm run render:v2:cpu` | Rendering software senza GPU: funziona ovunque ma è lento (circa 40 minuti su 4 core) |
+| `node v2/render.mjs --encode-only --keep-frames` | Rifà solo grading, audio e codifica sui fotogrammi già presenti in `v2/.frames/` |
+| `node v2/render.mjs --range=0-110` | Rifà solo un intervallo di fotogrammi e lascia gli altri |
+
+Se la modalità GPU dà errore all'avvio, il messaggio lo indica nel terminale: in quel caso usa `npm run render:v2:cpu`.
+
+## Dove cambiare le cose
+
+- **Montaggio e tempi** (tagli, tamp, reveal del logo): le costanti `CUT_DOSE`, `CUT_EXTRACT`, `CUT_CUP`, `TAMP` e `REVEAL` in cima a `v2/scene.js`. Se le sposti, sposta anche quelle con lo stesso nome in `v2/render.mjs`, che sincronizzano l'audio.
+- **Logo sulla tazza**: `v2/logo.png`, un PNG quadrato con sfondo trasparente fuori dal cerchio.
+- **Claim finale** ("Su cafè de Sardigna"): `LABELS.tag` in `v2/scene.js`.
+- **Colore e look**: il filtro `curves` nella funzione `encode()` di `v2/render.mjs`.
+
+Il font Cinzel è distribuito con licenza SIL Open Font License (`assets/OFL.txt`).

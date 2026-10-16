@@ -1,9 +1,11 @@
 // Sardinian Coffee Corner v2 — Three.js (headless Chromium, SwiftShader) -> raw frames -> FFmpeg grade + procedural audio -> MP4
 // Usage:
-//   node v2/render.mjs                          full render -> sardinian_coffee_reveal_v2.mp4
-//   node v2/render.mjs --preview 0,120,300 0.5  stills into v2/preview
-//   node v2/render.mjs --audio-test             writes v2/preview/audio_test.wav
-//   node v2/render.mjs --encode-only            re-grade/re-encode existing frames
+//   node v2/render.mjs [--gpu]                   full render -> sardinian_coffee_reveal_v2.mp4 (--gpu: use the real graphics card)
+//   node v2/render.mjs --preview 0,120,300 0.5   stills into v2/preview
+//   node v2/render.mjs --range=0-110             re-render only those frames, keeping the others
+//   node v2/render.mjs --encode-only             re-grade/re-encode existing frames
+//   node v2/render.mjs --audio-test              writes v2/preview/audio_test.wav
+//   --workers=N                                  parallel browsers (default 2 on CPU, 1 with --gpu)
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,10 +21,16 @@ try { ({ chromium } = require('playwright')); }
 catch { ({ chromium } = require(path.join(process.env.NODE_PATH || '/opt/node22/lib/node_modules', 'playwright'))); }
 
 const args = process.argv.slice(2);
+const has = f => args.includes(f);
+const after = f => { const i = args.indexOf(f); return i >= 0 ? args.slice(i + 1).filter(a => !a.startsWith('--')) : []; };
+const rangeArg = args.find(a => a.startsWith('--range='));
 const FRAMES_DIR = path.join(HERE, '.frames');
 const PREVIEW_DIR = path.join(HERE, 'preview');
 const OUT = path.join(ROOT, 'sardinian_coffee_reveal_v2.mp4');
-const WORKERS = parseInt(process.env.WORKERS || '2', 10);
+// --gpu: use the machine's real graphics card (opens a browser window). Default: SwiftShader software GL (headless).
+const GPU = args.includes('--gpu');
+const workersArg = args.find(a => a.startsWith('--workers='));
+const WORKERS = parseInt(workersArg ? workersArg.split('=')[1] : (process.env.WORKERS || (GPU ? '1' : '2')), 10);
 const DUR = 8, FPS = 60, TOTAL = DUR * FPS;
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.ttf': 'font/ttf', '.png': 'image/png', '.json': 'application/json' };
@@ -42,26 +50,33 @@ function serve() {
   });
   return new Promise(r => server.listen(0, '127.0.0.1', () => r(server)));
 }
-const launch = () => chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-vsync'] });
+const launch = () => GPU
+  ? chromium.launch({ headless: false, args: ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--enable-unsafe-swiftshader', '--disable-gpu-vsync', '--disable-background-timer-throttling', '--disable-renderer-backgrounding'] })
+  : chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-vsync'] });
 async function openPage(browser, port, scale) {
   const page = await browser.newPage({ viewport: { width: 540, height: 960 } });
   page.setDefaultTimeout(0);
-  page.on('pageerror', e => console.error('[page]', e.message));
+  let fail;
+  const failed = new Promise((_, rej) => (fail = rej));
+  page.on('pageerror', e => { console.error('[page]', e.message); fail(new Error(`the page failed to start: ${e.message}`)); });
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.error('[console]', m.text()); });
   await page.goto(`http://127.0.0.1:${port}/v2/index.html?scale=${scale}`);
-  await page.waitForFunction(() => window.RENDER, null, { timeout: 0 });
-  await page.evaluate(() => window.RENDER.ready);
+  await Promise.race([failed, (async () => {
+    await page.waitForFunction(() => window.RENDER, null, { timeout: 180000 });
+    await page.evaluate(() => window.RENDER.ready);
+  })()]);
   return page;
 }
 
 async function runPreview(server) {
-  const frames = (args[1] || '30,100,160,230,300,330,380,450,479').split(',').map(Number);
-  const scale = parseFloat(args[2] || '0.5');
+  const [list, sc] = after('--preview');
+  const frames = (list || '30,100,160,230,300,330,380,450,479').split(',').map(Number);
+  const scale = parseFloat(sc || '0.5');
   fs.mkdirSync(PREVIEW_DIR, { recursive: true });
   const browser = await launch();
   const t0 = Date.now();
   const page = await openPage(browser, server.address().port, scale);
-  console.log(`init ${(Date.now() - t0) / 1000}s`);
+  console.log(`init ${(Date.now() - t0) / 1000}s · ${await page.evaluate(() => { const g = document.createElement('canvas').getContext('webgl2'); const d = g.getExtension('WEBGL_debug_renderer_info'); return g.getParameter(d ? d.UNMASKED_RENDERER_WEBGL : g.RENDERER); })}`);
   for (const f of frames) {
     const t1 = Date.now();
     const data = await page.evaluate(async i => { await window.RENDER.frame(i); return document.getElementById('c').toDataURL('image/png'); }, f);
@@ -71,24 +86,26 @@ async function runPreview(server) {
   await browser.close();
 }
 
-async function renderAll(server) {
-  fs.rmSync(FRAMES_DIR, { recursive: true, force: true });
+async function renderAll(server, first = 0, last = TOTAL - 1) {
+  // a partial --range re-render keeps the frames already on disk
+  if (!rangeArg) fs.rmSync(FRAMES_DIR, { recursive: true, force: true });
   fs.mkdirSync(FRAMES_DIR, { recursive: true });
   const port = server.address().port;
-  let next = 0, done = 0;
+  let next = first, done = 0;
+  const count = last - first + 1;
   const t0 = Date.now();
   await Promise.all(Array.from({ length: WORKERS }, async (_, w) => {
     await new Promise(r => setTimeout(r, w * 20000)); // stagger start-up
     const browser = await launch();
     const page = await openPage(browser, port, 1);
-    while (next < TOTAL) {
+    while (next <= last) {
       const f = next++;
       const status = await page.evaluate(([i, url]) => window.RENDER.post(i, url), [f, `/frame/${String(f).padStart(4, '0')}`]);
       if (status !== 200) throw new Error(`frame ${f} upload failed`);
       done++;
       if (done % 20 === 0) {
         const el = (Date.now() - t0) / 1000;
-        console.log(`${done}/${TOTAL} frames · ${el.toFixed(0)}s elapsed · ~${(el / done * (TOTAL - done)).toFixed(0)}s left`);
+        console.log(`${done}/${count} frames · ${el.toFixed(0)}s elapsed · ~${(el / done * (count - done)).toFixed(0)}s left`);
       }
     }
     await browser.close();
@@ -185,16 +202,19 @@ function encode() {
   });
 }
 
-if (args[0] === '--audio-test') { await testAudio(); console.log('wrote', path.join(PREVIEW_DIR, 'audio_test.wav')); process.exit(0); }
+if (has('--audio-test')) { await testAudio(); console.log('wrote', path.join(PREVIEW_DIR, 'audio_test.wav')); process.exit(0); }
 const server = await serve();
 try {
-  if (args[0] === '--preview') await runPreview(server);
-  else {
-    if (!args.includes('--encode-only')) await renderAll(server);
+  if (has('--preview')) await runPreview(server);
+  else if (rangeArg) {
+    const [a, b] = rangeArg.split('=')[1].split('-').map(Number);
+    await renderAll(server, a, b);
+  } else {
+    if (!has('--encode-only')) await renderAll(server);
     console.log('encoding with ffmpeg…');
     await encode();
     console.log('wrote', OUT);
-    if (!args.includes('--keep-frames')) fs.rmSync(FRAMES_DIR, { recursive: true, force: true });
+    if (!has('--keep-frames')) fs.rmSync(FRAMES_DIR, { recursive: true, force: true });
   }
 } finally {
   server.close();

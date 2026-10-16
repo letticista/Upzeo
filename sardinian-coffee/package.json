@@ -1,10 +1,13 @@
 {
   "name": "sardinian-coffee-reveal",
   "version": "1.0.0",
-  "description": "Three.js + FFmpeg pipeline that renders sardinian_coffee_reveal.mp4",
+  "description": "Three.js + FFmpeg pipeline for the Sardinian Coffee Corner reels",
   "scripts": {
     "render": "node render.mjs",
-    "preview": "node render.mjs --preview"
+    "preview": "node render.mjs --preview",
+    "render:v2": "node v2/render.mjs --gpu",
+    "render:v2:cpu": "node v2/render.mjs",
+    "preview:v2": "node v2/render.mjs --gpu --preview"
   },
   "keywords": [],
   "author": "",
@@ -12,5 +15,8 @@
   "dependencies": {
     "three": "^0.169.0"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
 }
