@@ -44,7 +44,14 @@ Si apre una finestra di Chromium che usa la tua scheda video: lasciala aperta fi
 | `node v2/render.mjs --encode-only --keep-frames` | Rifà solo grading, audio e codifica sui fotogrammi già presenti in `v2/.frames/` |
 | `node v2/render.mjs --range=0-110` | Rifà solo un intervallo di fotogrammi e lascia gli altri |
 
-Se la modalità GPU dà errore all'avvio, il messaggio lo indica nel terminale: in quel caso usa `npm run render:v2:cpu`.
+Se `npx playwright install chromium` si blocca o la modalità GPU dà errore all'avvio, puoi usare Google Chrome già installato sul computer. Non serve scaricare Chromium:
+
+```bash
+npm run preview:v2:chrome -- 0,300,479 0.5   # test veloce
+npm run render:v2:chrome                      # video completo
+```
+
+In ultima istanza, `npm run render:v2:cpu` fa tutto in software: funziona ovunque ma è lento.
 
 ## Dove cambiare le cose
 

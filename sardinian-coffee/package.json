@@ -7,7 +7,9 @@
     "preview": "node render.mjs --preview",
     "render:v2": "node v2/render.mjs --gpu",
     "render:v2:cpu": "node v2/render.mjs",
-    "preview:v2": "node v2/render.mjs --gpu --preview"
+    "preview:v2": "node v2/render.mjs --gpu --preview",
+    "render:v2:chrome": "node v2/render.mjs --chrome",
+    "preview:v2:chrome": "node v2/render.mjs --chrome --preview"
   },
   "keywords": [],
   "author": "",

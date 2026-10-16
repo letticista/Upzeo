@@ -6,6 +6,7 @@
 //   node v2/render.mjs --encode-only             re-grade/re-encode existing frames
 //   node v2/render.mjs --audio-test              writes v2/preview/audio_test.wav
 //   --workers=N                                  parallel browsers (default 2 on CPU, 1 with --gpu)
+//   --chrome                                     like --gpu, but uses the installed Google Chrome instead of Playwright's Chromium
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -28,7 +29,7 @@ const FRAMES_DIR = path.join(HERE, '.frames');
 const PREVIEW_DIR = path.join(HERE, 'preview');
 const OUT = path.join(ROOT, 'sardinian_coffee_reveal_v2.mp4');
 // --gpu: use the machine's real graphics card (opens a browser window). Default: SwiftShader software GL (headless).
-const GPU = args.includes('--gpu');
+const GPU = args.includes('--gpu') || args.includes('--chrome');
 const workersArg = args.find(a => a.startsWith('--workers='));
 const WORKERS = parseInt(workersArg ? workersArg.split('=')[1] : (process.env.WORKERS || (GPU ? '1' : '2')), 10);
 const DUR = 8, FPS = 60, TOTAL = DUR * FPS;
@@ -50,8 +51,10 @@ function serve() {
   });
   return new Promise(r => server.listen(0, '127.0.0.1', () => r(server)));
 }
-const launch = () => GPU
-  ? chromium.launch({ headless: false, args: ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--enable-unsafe-swiftshader', '--disable-gpu-vsync', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] })
+// --chrome: drive the Google Chrome already installed on the machine (no Playwright browser download needed)
+const CHROME = has('--chrome');
+const launch = () => (GPU || CHROME)
+  ? chromium.launch({ headless: false, ...(CHROME ? { channel: 'chrome' } : {}), args: ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--enable-unsafe-swiftshader', '--disable-gpu-vsync', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] })
   : chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-vsync'] });
 const RENDERER_INFO = () => { const g = document.createElement('canvas').getContext('webgl2'); if (!g) return 'nessun WebGL2'; const d = g.getExtension('WEBGL_debug_renderer_info'); return g.getParameter(d ? d.UNMASKED_RENDERER_WEBGL : g.RENDERER); };
 async function openPage(browser, port, scale, tag = '') {
