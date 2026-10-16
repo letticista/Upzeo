@@ -131,7 +131,7 @@ def burr_coating():
     g = M.Graph('opalglide')
     tan = g.node('ShaderNodeTangent', direction_type='RADIAL', axis='Z').outputs[0]
     co = g.coord()
-    film = g.map_range(g.noise(co, 0.9, detail=3.0).outputs['Fac'], 0.3, 0.7, 260.0, 520.0)
+    film = g.map_range(g.noise(co, 0.9, detail=3.0).outputs['Fac'], 0.3, 0.7, 300.0, 460.0)
     marks = g.noise(co, 120.0, detail=3.0)
     rough = g.math('ADD', M.varied_roughness(g, 0.13, 0.24, 3.0), g.map_range(marks.outputs['Fac'], 0.3, 0.7, -0.04, 0.04))
     g.p(Base_Color=(0.56, 0.57, 0.58), Metallic=1.0, Roughness=rough, Anisotropic=0.6, Tangent=tan,
@@ -157,7 +157,7 @@ def build(scene):
     hub.data.materials.append(M.get('steel'))
     for a in (90, 210, 330):
         screw = _screw(f'screw_{a}', col, lower)
-        screw.location = (2.41 * math.cos(math.radians(a)), 2.41 * math.sin(math.radians(a)), -0.47)
+        screw.location = (2.41 * math.cos(math.radians(a)), 2.41 * math.sin(math.radians(a)), -0.56)
     # upper burr (fixed), mirrored face down, cut away towards the camera for the render; full ring for collisions
     upper = bpy.data.objects.new('upper_assembly', None)
     col.objects.link(upper)
@@ -168,7 +168,7 @@ def build(scene):
     C.obj_new('upper_burr', up_me, col, upper)
     for a in (90, 210):
         s = _screw(f'screw_u{a}', col, upper)
-        s.location = (2.41 * math.cos(math.radians(a)), 2.41 * math.sin(math.radians(a)), -0.47)
+        s.location = (2.41 * math.cos(math.radians(a)), 2.41 * math.sin(math.radians(a)), -0.56)
     # chamber: dark housing behind the burrs, a bellows throat above (out of the frame but in the reflections)
     hv, hf, huv = C.lathe([(3.6, -2.5), (3.7, -2.5), (3.7, 2.2), (3.6, 2.2)], 128)
     house = C.obj_new('chamber', C.mesh_from_arrays('chamber', hv, hf, huv), col)
@@ -420,13 +420,13 @@ def powder_positions(t, data):
 
 
 # ------------------------------------------------------------------ camera, lights
-CAM_KEYS = [(1.0, (-1.2, -9.6, 5.6), (0.0, 0.2, 0.6)), (1.8, (-0.4, -8.9, 4.6), (0.1, 0.3, 0.2)), (2.6, (0.7, -8.0, 3.7), (0.3, 0.6, 0.0))]
+CAM_KEYS = [(1.0, (-1.6, -9.4, 5.2), (0.1, -1.6, 0.5)), (1.8, (-0.8, -8.9, 4.3), (0.3, -1.9, 0.15)), (2.6, (0.3, -8.3, 3.5), (0.5, -2.1, 0.0))]
 
 
 def _cam(t):
     pos = C.hermite([(k[0], k[1]) for k in CAM_KEYS], t)
     tgt = C.hermite([(k[0], k[2]) for k in CAM_KEYS], t)
-    focus_pt = np.array([0.4, -1.6, 0.05])                      # the near breaker zone, where the beans crack
+    focus_pt = np.array([0.3, -2.1, 0.1])                       # the near breaker zone, where the beans crack
     shake = np.array([C.noise1(t * 2.0, 1), C.noise1(t * 2.0, 2), C.noise1(t * 2.0, 3)]) * 0.02
     return dict(pos=pos + shake, target=tgt, roll=0.04 * math.sin(t * 1.3), fov=C.lerp(30, 26, C.smooth(1.0, 2.6, t)),
                 focus=float(np.linalg.norm(pos - focus_pt)), fstop=8.0)
@@ -434,17 +434,17 @@ def _cam(t):
 
 def _lights_camera(scene):
     col = scene.collection
-    key = S.area_light(scene, 'key', 6.0, 0.9, (1.0, 0.93, 0.85), size_y=10.0)
+    key = S.area_light(scene, 'key', 6.0, 0.45, (1.0, 0.93, 0.85), size_y=10.0)
     key.location = (-7.0, -5.0, 9.0)
     S.aim(key, (0, 0, 0))
-    rim = S.area_light(scene, 'rim', 2.0, 0.8, (1.0, 0.75, 0.5), size_y=8.0)
+    rim = S.area_light(scene, 'rim', 2.0, 0.6, (1.0, 0.75, 0.5), size_y=8.0)
     rim.location = (6.0, 6.0, 3.0)
     S.aim(rim, (0, 0, 0.3))
-    top = S.area_light(scene, 'top', 3.0, 0.15, (0.9, 0.95, 1.0))
+    top = S.area_light(scene, 'top', 3.0, 0.06, (0.9, 0.95, 1.0))
     top.location = (0.0, 0.0, 14.0)
     S.aim(top, (0, 0, 0))
     S.make_camera(scene, 'cam_burrs', _cam)
-    S.key_world(scene.world, lambda t: (0.6, 0.15, 0.0), range(scene.frame_start - 1, scene.frame_end + 2))
+    S.key_world(scene.world, lambda t: (0.6, 0.08, 0.0), range(scene.frame_start - 1, scene.frame_end + 2))
 
 
 # ------------------------------------------------------------------ render-time updates
