@@ -1,4 +1,4 @@
-// Sardinian Coffee Corner v3 — Instagram outro (11 s, 1080x1920, 60 fps)
+// Sardinian Coffee Corner v3 — Instagram outro (12 s, 1080x1920, 60 fps)
 // Three.js in Chrome/Chromium -> frames streamed straight into FFmpeg (grade + procedural soundtrack) -> MP4
 //
 //   node v3/render.mjs --chrome                    final render with the installed Google Chrome (GPU)
@@ -28,7 +28,7 @@ const PREVIEW_DIR = path.join(HERE, 'preview');
 const OUT = path.join(ROOT, 'sardinian_coffee_outro_v3.mp4');
 const CHROME = has('--chrome');
 const GPU = has('--gpu') || CHROME;
-const DUR = 11, FPS = 60, TOTAL = DUR * FPS;
+const DUR = 12, FPS = 60, TOTAL = DUR * FPS;
 const Q = {
   mb: parseInt(opt('mb', GPU && !has('--preview') ? '4' : '1'), 10),
   dof: has('--no-dof') ? 0 : 1,
@@ -75,7 +75,7 @@ async function openPage(browser, port, scale, q, tag = '') {
   const failed = new Promise((_, rej) => (fail = rej));
   page.on('pageerror', e => { console.error('[page]', e.message); fail(new Error(`the page failed to start: ${e.message}`)); });
   page.on('console', m => { if (m.type() === 'error') console.error('[console]', m.text()); });
-  const qs = `scale=${scale}&mb=${q.mb}&dof=${q.dof}&ao=${q.ao}&msaa=${q.msaa}&shadow=${q.shadow}&taps=${q.taps}`;
+  const qs = `scale=${scale}&mb=${q.mb}&dof=${q.dof}&ao=${q.ao}&msaa=${q.msaa}&shadow=${q.shadow}&taps=${q.taps}${opt('debug', '') ? `&debug=${opt('debug', '')}` : ''}`;
   await page.goto(`http://127.0.0.1:${port}/v3/index.html?${qs}`);
   const gpu = await page.evaluate(RENDERER_INFO);
   console.log(`${tag}scheda grafica: ${gpu}`);
@@ -118,7 +118,7 @@ function launeddasMelody() { // mancosa line over the tumbu drone, in A
     return `if(between(t,${s},${e}),min(1,(t-${s})*220)*min(1,(${e}-t)*140)*${reed(N[n])},0)`;
   });
   const ls = (start + seq.length * step).toFixed(3);
-  terms.push(`if(between(t,${ls},10.98),min(1,(t-${ls})*60)*min(1,(10.98-t)*3)*(${reed(440)}+0.7*${reed(659.26)}),0)`);
+  terms.push(`if(between(t,${ls},11.98),min(1,(t-${ls})*60)*min(1,(11.98-t)*1.2)*(${reed(440)}+0.7*${reed(659.26)}),0)`);
   return terms.join('+');
 }
 function audioGraph() {
@@ -141,7 +141,7 @@ function audioGraph() {
     `aevalsrc='if(gte(t,${TAG}),0.7*(sin(2*PI*44*(t-${TAG}))+0.4*sin(2*PI*88*(t-${TAG})))*exp(-1.3*(t-${TAG}))*min(1,(t-${TAG})*40),0)':s=48000:d=${T}[hit]`,
     `[air][motor][crunch][whoosh][pour][thud][click][pump][trickle][drips][drone][melody][chime][hit]amix=inputs=14:normalize=0,` +
       `highpass=f=28,acompressor=threshold=0.3:ratio=2.5:attack=4:release=140,` +
-      `afade=t=in:st=0:d=0.1,afade=t=out:st=10.55:d=0.45,alimiter=limit=0.9,aformat=channel_layouts=stereo[aout]`
+      `afade=t=in:st=0:d=0.1,afade=t=out:st=10.8:d=1.2,alimiter=limit=0.9,aformat=channel_layouts=stereo[aout]`
   ].join(';');
 }
 function testAudio() {

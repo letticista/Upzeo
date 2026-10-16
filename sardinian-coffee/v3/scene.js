@@ -1,4 +1,4 @@
-// Sardinian Coffee Corner — v3 Instagram outro (11 s, 1080x1920, 60 fps).
+// Sardinian Coffee Corner — v3 Instagram outro (12 s, 1080x1920, 60 fps).
 // Beans in slow motion -> burrs -> dosing & tamp -> extraction -> crema -> crane to the cup, the logo prints on it.
 // Look: cafe HDRI lighting and blurred background, depth of field, motion blur (sub-frame accumulation),
 // ground-truth ambient occlusion, soft VSM shadows, procedural micro-relief on beans, crema, porcelain and grounds.
@@ -10,6 +10,7 @@ import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 const params = new URLSearchParams(location.search);
 const SCALE = parseFloat(params.get('scale') || '1');
@@ -20,7 +21,7 @@ const MSAA = parseInt(params.get('msaa') || '4', 10);
 const SHADOW = parseInt(params.get('shadow') || '2048', 10);
 const DOF_TAPS = parseInt(params.get('taps') || '48', 10);
 const W = Math.round(1080 * SCALE), H = Math.round(1920 * SCALE);
-const FPS = 60, DUR = 11, FRAMES = FPS * DUR;
+const FPS = 60, DUR = 12, FRAMES = FPS * DUR;
 const SHUTTER = 0.5; // 180° shutter
 
 // edit points (seconds)
@@ -160,7 +161,9 @@ const HEIGHTS = {
   brushed: 'float procHeight(vec3 p){ return snoise(vec3(p.x*uBF*6.0, p.y*uBF*0.3, p.z*uBF*6.0)); }'
 };
 const DUMMY = new THREE.DataTexture(new Uint8Array([128, 128, 128, 255]), 1, 1); DUMMY.needsUpdate = true;
+const NO_RELIEF = params.get('debug') === 'norelief';
 function microRelief(mat, kind, freq, amp) {
+  if (NO_RELIEF) return mat;
   mat.bumpMap = DUMMY; mat.bumpScale = amp;
   const prev = mat.onBeforeCompile;
   mat.onBeforeCompile = (sh, r) => {
@@ -173,13 +176,19 @@ function microRelief(mat, kind, freq, amp) {
       .replace('#include <common>', `#include <common>\nvarying vec3 vObjPos;\nuniform float uBF;\n${GLSL_NOISE}\n${HEIGHTS[kind]}`)
       .replace('#include <bumpmap_pars_fragment>', `
         uniform float bumpScale;
-        vec2 dHdxy_fwd() { float h = bumpScale * procHeight(vObjPos); return vec2(dFdx(h), dFdy(h)); }
+        // slope of the procedural height per world unit along the screen axes
+        vec2 dHdxy_fwd() {
+          float h = bumpScale * procHeight(vObjPos);
+          vec3 px = dFdx(-vViewPosition), py = dFdy(-vViewPosition);
+          return vec2(dFdx(h) / max(length(px), 1e-6), dFdy(h) / max(length(py), 1e-6));
+        }
         vec3 perturbNormalArb(vec3 surf_pos, vec3 surf_norm, vec2 dHdxy, float faceDirection) {
-          vec3 vSigmaX = dFdx(surf_pos.xyz); vec3 vSigmaY = dFdy(surf_pos.xyz); vec3 vN = surf_norm;
+          vec3 vSigmaX = normalize(dFdx(surf_pos.xyz)); vec3 vSigmaY = normalize(dFdy(surf_pos.xyz)); vec3 vN = surf_norm;
           vec3 R1 = cross(vSigmaY, vN); vec3 R2 = cross(vN, vSigmaX);
           float fDet = dot(vSigmaX, R1) * faceDirection;
           vec3 vGrad = sign(fDet) * (dHdxy.x * R1 + dHdxy.y * R2);
-          return normalize(abs(fDet) * surf_norm - vGrad);
+          float gl = length(vGrad); if (gl > 0.7) vGrad *= 0.7 / gl;   // never tilt more than ~35°
+          return normalize(max(abs(fDet), 0.3) * surf_norm - vGrad);
         }`);
   };
   mat.customProgramCacheKey = () => `relief-${kind}-${mat.uuid}`;
@@ -267,11 +276,22 @@ function cremaTexture() { // hazelnut crema with tiger flecks, lighter centre, d
     return c;
   });
 }
-function stripeTexture() { // tiger-striped espresso, u = along the stream
-  return pixelTex(512, 64, (u, v) => {
-    const n = fbm(u * 9, v * 2.2, 0.5, 3);
-    const band = 0.5 + 0.5 * Math.sin((u * 14 + n * 3) * Math.PI);
-    return mix3([40, 12, 3], [182, 100, 38], clamp(Math.pow(band, 3) * 0.9 + n * 0.4));
+// Espresso while it pours ("coda di topo"): turbid chestnut liquid with hazelnut tiger streaks and crema flecks.
+// Laid out in physical units: one tile = 1.7 cm of stream x its circumference; periodic along the flow,
+// mirrored around the circumference so the tube has no seam.
+function espressoTexture() {
+  const Lu = 1.7, Lv = 0.25, R = Lu / (2 * Math.PI);
+  return pixelTex(1024, 128, (u, v) => {
+    const a = u * Math.PI * 2, Y = Math.abs(v * 2 - 1) * Lv;
+    const P = (fu, fv, z) => [Math.cos(a) * R * fu, Math.sin(a) * R * fu, Y * fv + z];
+    const mott = fbm(...P(4, 4, 0.3), 4);         // broad mottling
+    const streak = fbm(...P(2.5, 22, 7.1), 3);    // tiger streaks stretched along the flow
+    const bub = N3(...P(70, 70, 2.0));            // fine crema bubbles
+    let c = mix3([112, 54, 20], [156, 86, 36], clamp(0.5 + mott * 1.1));
+    c = mix3(c, [86, 38, 13], clamp((-streak - 0.08) * 2.0) * 0.55);
+    c = mix3(c, [190, 122, 62], clamp((streak - 0.12) * 2.0) * 0.45);
+    c = mix3(c, [214, 162, 102], clamp((bub - 0.62) * 3.0) * 0.25);
+    return c;
   });
 }
 function puffTexture(seed) {
@@ -294,24 +314,39 @@ async function buildMaterials() {
   TEX.cork = corkTexture(); TEX.cork.wrapS = TEX.cork.wrapT = THREE.RepeatWrapping;
   TEX.grounds = groundsTexture(); TEX.grounds.wrapS = TEX.grounds.wrapT = THREE.RepeatWrapping; TEX.grounds.repeat.set(3, 3);
   TEX.crema = cremaTexture();
-  TEX.stripe = stripeTexture(); TEX.stripe.wrapS = TEX.stripe.wrapT = THREE.RepeatWrapping;
+  TEX.stripe = espressoTexture(); TEX.stripe.wrapS = TEX.stripe.wrapT = THREE.RepeatWrapping; TEX.stripe.repeat.set(3, 1);
   TEX.puffs = [0, 1, 2, 3].map(puffTexture);
 
-  MAT.steel = microRelief(new THREE.MeshPhysicalMaterial({ color: 0xcdc8c2, metalness: 1, roughness: 0.3, anisotropy: 0.7, envMapIntensity: 1.0 }), 'brushed', 3, 0.004);
-  MAT.steelDark = microRelief(new THREE.MeshPhysicalMaterial({ color: 0x5a554f, metalness: 1, roughness: 0.42, anisotropy: 0.6, envMapIntensity: 0.6, side: THREE.DoubleSide }), 'brushed', 2, 0.004);
+  MAT.steel = new THREE.MeshPhysicalMaterial({ color: 0xcdc8c2, metalness: 1, roughness: 0.3, anisotropy: 0.7, envMapIntensity: 1.0 });
+  MAT.steelDark = new THREE.MeshPhysicalMaterial({ color: 0x5a554f, metalness: 1, roughness: 0.42, anisotropy: 0.6, envMapIntensity: 0.6, side: THREE.DoubleSide });
+  // basket: satin steel without anisotropy, highlights capped so no single pixel can blow up into a bokeh disc
+  MAT.basket = new THREE.MeshPhysicalMaterial({ color: 0xcdc8c2, metalness: 1, roughness: 0.34, envMapIntensity: 1.0 });
+  MAT.basket.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', 'outgoingLight = min(outgoingLight, vec3(4.0));\n#include <opaque_fragment>'); };
   MAT.chrome = new THREE.MeshPhysicalMaterial({ color: 0xf0ece6, metalness: 1, roughness: 0.06, envMapIntensity: 1.2 });
-  MAT.copper = microRelief(new THREE.MeshPhysicalMaterial({ color: 0xc8845a, metalness: 1, roughness: 0.27, clearcoat: 0.35, clearcoatRoughness: 0.12, envMapIntensity: 1.15 }), 'glaze', 1.2, 0.006);
+  MAT.copper = new THREE.MeshPhysicalMaterial({ color: 0xc8845a, metalness: 1, roughness: 0.27, clearcoat: 0.35, clearcoatRoughness: 0.12, envMapIntensity: 1.15 });
   MAT.wood = new THREE.MeshPhysicalMaterial({ map: wd, normalMap: wn, roughnessMap: wr, roughness: 0.9, clearcoat: 0.55, clearcoatRoughness: 0.22, color: 0xb98b6a, envMapIntensity: 0.8 });
   MAT.porcelain = microRelief(new THREE.MeshPhysicalMaterial({ color: 0xf3efe7, roughness: 0.13, clearcoat: 1, clearcoatRoughness: 0.04, sheen: 0.12, sheenColor: new THREE.Color(0xfff2dc), envMapIntensity: 0.9 }), 'glaze', 2.2, 0.0025);
   MAT.granite = microRelief(new THREE.MeshPhysicalMaterial({ map: TEX.granite, roughness: 0.3, clearcoat: 0.75, clearcoatRoughness: 0.08, envMapIntensity: 0.7 }), 'glaze', 0.6, 0.004);
   MAT.corkTop = microRelief(new THREE.MeshStandardMaterial({ map: TEX.cork, roughness: 0.93, envMapIntensity: 0.4 }), 'pores', 3.2, 0.02);
   MAT.corkSide = microRelief(new THREE.MeshStandardMaterial({ color: 0x9a6c45, roughness: 0.95 }), 'pores', 3.2, 0.02);
-  MAT.grounds = microRelief(new THREE.MeshStandardMaterial({ map: TEX.grounds, roughness: 0.96, envMapIntensity: 0.35 }), 'grain', 9, 0.03);
+  const gl = f => tl.loadAsync(`/v3/assets/${f}`);
+  const [gc, gn, gr, ga, gd] = await Promise.all(['grounds_color_2k.jpg', 'grounds_normal_2k.jpg', 'grounds_rough_1k.jpg', 'grounds_ao_1k.jpg', 'grounds_disp_1k.jpg'].map(gl));
+  gc.colorSpace = THREE.SRGBColorSpace;
+  [gc, gn, gr, ga, gd].forEach(t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1.5, 1.5); t.anisotropy = 16; });
+  TEX.groundsColor = gc;
+  MAT.grounds = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.74, 0.66, 0.6), map: gc, normalMap: gn, normalScale: new THREE.Vector2(1.5, 1.5), roughnessMap: gr, roughness: 1, aoMap: ga, aoMapIntensity: 1, displacementMap: gd, displacementScale: 0.075, displacementBias: -0.04, envMapIntensity: 0.45 });
   MAT.crema = microRelief(new THREE.MeshPhysicalMaterial({ map: TEX.crema, roughness: 0.55, sheen: 0.7, sheenColor: new THREE.Color(0xe8b47a), sheenRoughness: 0.45, clearcoat: 0.15, clearcoatRoughness: 0.4, envMapIntensity: 0.45 }), 'bubbles', 34, 0.0035);
-  MAT.espresso = new THREE.MeshPhysicalMaterial({ map: TEX.stripe, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02, emissive: new THREE.Color(0x3a1406), emissiveMap: TEX.stripe, emissiveIntensity: 0.7, envMapIntensity: 1.3 });
-  MAT.drop = new THREE.MeshPhysicalMaterial({ color: 0x4e1d07, roughness: 0.04, clearcoat: 1, emissive: new THREE.Color(0x3e1605), emissiveIntensity: 0.5, envMapIntensity: 1.3 });
+  // thin liquid lit from behind: light leaks through the edges, so add an amber rim instead of a candy-like gloss
+  const translucentEdge = mat => { mat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>', `
+      float rimF = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 2.6);
+      outgoingLight += vec3(0.62, 0.30, 0.08) * rimF * 0.5;
+      #include <opaque_fragment>`); }; return mat; };
+  MAT.espresso = translucentEdge(new THREE.MeshPhysicalMaterial({ map: TEX.stripe, roughness: 0.14, clearcoat: 0.0, envMapIntensity: 0.5 }));
+  MAT.drop = translucentEdge(new THREE.MeshPhysicalMaterial({ color: 0x8a4a1e, roughness: 0.14, envMapIntensity: 0.5 }));
   MAT.bean = microRelief(new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.36, clearcoat: 0.55, clearcoatRoughness: 0.35, envMapIntensity: 0.75 }), 'bean', 7, 0.012);
   MAT.chunk = microRelief(new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.75, envMapIntensity: 0.5 }), 'grain', 3, 0.04);
+  // falling grounds: matte grains with tiny oily glints, mottled with the same scanned colour
+  MAT.grain = new THREE.MeshStandardMaterial({ color: 0xffffff, map: gc, roughness: 0.62, envMapIntensity: 0.9 });
   MAT.leaf = new THREE.MeshPhysicalMaterial({ color: 0x2c4a22, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.2, side: THREE.DoubleSide, sheen: 0.3, sheenColor: new THREE.Color(0x8aa070) });
   MAT.berry = new THREE.MeshPhysicalMaterial({ color: 0x2a1534, roughness: 0.42, clearcoat: 0.4, sheen: 1, sheenColor: new THREE.Color(0x8a7aa8), sheenRoughness: 0.6 });
   MAT.twig = new THREE.MeshStandardMaterial({ color: 0x4a3423, roughness: 0.8 });
@@ -440,8 +475,10 @@ function buildSaucer() {
 function buildPortafilter() {
   const g = new THREE.Group();
   g.add(shadowed(new THREE.Mesh(lathe([[0.001, -3.6], [1.25, -3.6], [1.32, -3.3], [2.6, -2.9], [3.25, -2.3], [3.45, -1.2], [3.55, -0.2], [3.62, 0.0], [3.62, 0.18], [3.45, 0.26], [3.1, 0.22]], 160), MAT.copper)));
-  g.add(shadowed(new THREE.Mesh(lathe([[3.09, 0.24], [2.98, 0.12], [2.93, -0.5], [2.86, -1.8], [2.76, -2.25], [2.5, -2.32], [0.001, -2.33]], 160), MAT.steel)));
-  for (const s of [-1, 1]) { const lug = shadowed(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.5, 1.2), MAT.copper)); lug.position.set(0, -0.35, s * 3.75); g.add(lug); }
+  g.add(shadowed(new THREE.Mesh(lathe([[3.09, 0.24], [2.98, 0.12], [2.93, -0.5], [2.86, -1.8], [2.76, -2.25], [2.5, -2.32], [0.001, -2.33]], 160), MAT.basket)));
+  // dark liner between the copper shell and the basket: sub-pixel cracks in the shell must not reveal the bright steel
+  g.add(new THREE.Mesh(lathe([[0.001, -2.9], [2.55, -2.88], [3.15, -2.3], [3.35, -1.2], [3.45, -0.2], [3.52, 0.0], [3.52, 0.16]], 160), new THREE.MeshBasicMaterial({ color: 0x1a0d06, side: THREE.DoubleSide })));
+  for (const s of [-1, 1]) { const lug = shadowed(new THREE.Mesh(new RoundedBoxGeometry(1.5, 0.42, 1.0, 4, 0.18), MAT.copper)); lug.position.set(0, -0.32, s * 3.9); g.add(lug); }
   const arm = new THREE.Group(); arm.position.set(3.2, -1.3, 0); arm.rotation.z = -0.12; g.add(arm);
   const neck = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.72, 3.2, 48), MAT.copper)); neck.rotation.z = -Math.PI / 2; neck.position.x = 1.6; arm.add(neck);
   const ferrule = shadowed(new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.18, 16, 64), MAT.copper)); ferrule.rotation.y = Math.PI / 2; ferrule.position.x = 3.25; arm.add(ferrule);
@@ -543,26 +580,28 @@ const dofRT = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType });
 const accumRT = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType });
 const dofQuad = new FullScreenQuad(new THREE.ShaderMaterial({
   defines: { TAPS: DOF_TAPS },
-  uniforms: { tColor: { value: null }, tDepth: { value: sceneRT.depthTexture }, uRes: { value: new THREE.Vector2(W, H) }, uFocus: { value: 20 }, uAperture: { value: 0 }, uMaxBlur: { value: 34 * SCALE }, uNear: { value: camera.near }, uFar: { value: camera.far } },
+  uniforms: { tColor: { value: null }, tDepth: { value: sceneRT.depthTexture }, uRes: { value: new THREE.Vector2(W, H) }, uFocus: { value: 20 }, uAperture: { value: 0 }, uMaxBlur: { value: 34 * SCALE }, uSeed: { value: 0 }, uNear: { value: camera.near }, uFar: { value: camera.far } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
   fragmentShader: `#include <packing>
-    uniform sampler2D tColor; uniform sampler2D tDepth; uniform vec2 uRes; uniform float uFocus, uAperture, uMaxBlur, uNear, uFar; varying vec2 vUv;
+    uniform sampler2D tColor; uniform sampler2D tDepth; uniform vec2 uRes; uniform float uFocus, uAperture, uMaxBlur, uNear, uFar, uSeed; varying vec2 vUv;
+    float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
     float viewZ(vec2 uv){ return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, uNear, uFar); }
     float coc(float z){ return clamp(uAperture * abs(z - uFocus) / max(z, 0.01), 0.0, uMaxBlur); }
-    vec3 fetch(vec2 uv){ vec3 c = texture2D(tColor, uv).rgb; if (any(isnan(c)) || any(isinf(c))) c = vec3(0.0); float m = max(max(c.r, c.g), c.b); return m > 16.0 ? c * (16.0 / m) : c; }
+    vec3 fetch(vec2 uv, float lim){ vec3 c = texture2D(tColor, uv).rgb; if (any(isnan(c)) || any(isinf(c))) c = vec3(0.0); float m = max(max(c.r, c.g), c.b); return m > lim ? c * (lim / m) : c; }
     void main(){
-      vec3 base = fetch(vUv);
+      vec3 base = fetch(vUv, 16.0);
       float z0 = viewZ(vUv), c0 = coc(z0);
       if (c0 < 0.6) { gl_FragColor = vec4(base, 1.0); return; }
-      vec3 acc = base; float wsum = 1.0;
+      vec3 acc = min(base, vec3(4.0)); float wsum = 1.0;
+      float rot = ign(gl_FragCoord.xy + uSeed * 17.31) * 6.2831853;
       for (int i = 1; i < TAPS; i++) {
         float fi = float(i);
-        float r = sqrt(fi / float(TAPS)) * c0, a = fi * 2.39996323;
+        float r = sqrt((fi + ign(gl_FragCoord.yx + uSeed * 5.7)) / float(TAPS)) * c0, a = fi * 2.39996323 + rot;
         vec2 uv = vUv + vec2(cos(a), sin(a)) * r / uRes;
         float zs = viewZ(uv), cs = coc(zs);
         float w = zs < z0 - 0.5 ? smoothstep(r - 1.0, r + 1.0, cs) : 1.0;
-        vec3 s = fetch(uv);
-        w *= 1.0 + 1.6 * smoothstep(1.2, 5.0, dot(s, vec3(0.2126, 0.7152, 0.0722)));
+        vec3 s = fetch(uv, 4.0);
+        w *= 1.0 + 0.8 * smoothstep(1.0, 4.0, dot(s, vec3(0.2126, 0.7152, 0.0722)));
         acc += s * w; wsum += w;
       }
       gl_FragColor = vec4(acc / wsum, 1.0);
@@ -626,7 +665,7 @@ const SET = { beans: new THREE.Group(), burrs: new THREE.Group(), dose: new THRE
 Object.values(SET).forEach(s => scene.add(s));
 const L = {};
 let cup, portafilter, grinder, tamper, tagline;
-let heroBeans, grindBeans, fragsI, groundsI, puff, streams = [], dripsI, crownI, steam = [], sparks, tableBeans;
+let heroBeans, grindBeans, fragsI, groundsI, clumpsI, haze, puff, streams = [], dripsI, crownI, steam = [], sparks, tableBeans;
 const BEANS = [], GRIND = { beans: [], frags: [] }, DOSE = { parts: [] };
 
 async function build() {
@@ -687,18 +726,28 @@ async function build() {
 
   /* shot 3: dosing and tamp */
   portafilter = buildPortafilter();
-  const mound = new THREE.Mesh(polarDisk(70, 192), MAT.grounds); mound.receiveShadow = true; mound.castShadow = true;
+  const mound = new THREE.Mesh(polarDisk(120, 300), MAT.grounds); mound.receiveShadow = true; mound.castShadow = true;
   OBJ.mound = mound; OBJ.moundBase = mound.geometry.attributes.position.array.slice();
   portafilter.add(mound);
   tamper = buildTamper(); SET.dose.add(tamper);
-  const NG = 3200;
-  groundsI = new THREE.InstancedMesh(chunkGeometry(), MAT.chunk, NG); groundsI.frustumCulled = false; groundsI.castShadow = true;
-  for (let i = 0; i < NG; i++) {
-    const k = R(); c.setRGB(lerp(0.11, 0.32, k), lerp(0.055, 0.18, k), lerp(0.028, 0.085, k), THREE.SRGBColorSpace); groundsI.setColorAt(i, c);
-    const g1 = Math.sqrt(-2 * Math.log(R() + 1e-6)) * Math.cos(6.283 * R()), g2 = Math.sqrt(-2 * Math.log(R() + 1e-6)) * Math.cos(6.283 * R());
-    DOSE.parts.push({ ts: lerp(T.dose - 1.0, T.tamp - 0.45, R()), gx: g1, gz: g2, s: 0.03 + Math.pow(R(), 2) * 0.065, ax: V3(R(), R(), R()).normalize(), spin: R() * 8 });
+  const NG = 16000, NC = 160;
+  const gauss = () => Math.sqrt(-2 * Math.log(R() + 1e-6)) * Math.cos(6.283 * R());
+  groundsI = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), MAT.grain, NG); groundsI.frustumCulled = false; groundsI.castShadow = true;
+  clumpsI = new THREE.InstancedMesh(chunkGeometry(), MAT.grain, NC); clumpsI.frustumCulled = false; clumpsI.castShadow = true;
+  for (let i = 0; i < NG + NC; i++) {
+    const clump = i >= NG, k = R();
+    c.setRGB(lerp(0.7, 1.45, k), lerp(0.66, 1.35, k), lerp(0.62, 1.28, k)); (clump ? clumpsI : groundsI).setColorAt(clump ? i - NG : i, c); // tints the scanned colour map
+    DOSE.parts.push({
+      ts: lerp(T.dose - 1.1, T.tamp - 0.45, R()), gx: gauss(), gz: gauss(), clump, idx: clump ? i - NG : i,
+      s: clump ? 0.035 + Math.pow(R(), 1.5) * 0.04 : 0.008 + Math.pow(R(), 2) * 0.016,
+      v0: clump ? 12.5 + R() * 2 : 10 + R() * 2.5, g: clump ? 21 : 17,
+      sx: 0.7 + R() * 0.6, sy: 0.6 + R() * 0.5, ax: V3(R() - 0.5, R() - 0.5, R() - 0.5).normalize(), spin: (clump ? 3 : 12) * R(), seed: R() * 100
+    });
   }
-  SET.dose.add(groundsI);
+  SET.dose.add(groundsI, clumpsI);
+  haze = makePoints(1800, false);
+  haze.userData.seed = Array.from({ length: 1800 }, () => [gauss(), gauss(), R(), R()]);
+  SET.dose.add(haze);
   puff = makePoints(300, false);
   puff.userData.seed = Array.from({ length: 300 }, () => [R() * 6.283, R(), R()]);
   SET.dose.add(puff);
@@ -881,19 +930,33 @@ function shotDose(t) {
   DOSE.parts.forEach((g, i) => {
     const age = t - g.ts; let sc = 0;
     if (age > 0) {
-      const y = 10 - 13 * age - 9 * age * age, spread = 0.22 * (1 + age * 1.6);
-      p.set(0.25 + g.gx * spread, y, g.gz * spread);
+      const y = 9.5 - g.v0 * age - 0.5 * g.g * age * age, spread = 0.15 + 0.3 * age;
+      p.set(0.25 + g.gx * spread + 0.12 * age * N3(g.seed, age * 1.5, 0), y, g.gz * spread + 0.12 * age * N3(g.seed, age * 1.5, 4));
       const rho = Math.hypot(p.x, p.z), surf = rho < BASKET_R ? moundHeight(rho, Math.atan2(p.z, p.x), t) : -3;
-      if (y > surf + 0.02 && t < T.tamp) sc = g.s;
+      if (y > surf + 0.01 && t < T.tamp) sc = g.s;
       q.setFromAxisAngle(g.ax, g.spin * age);
     }
-    m.compose(p, q, s.setScalar(sc)); groundsI.setMatrixAt(i, m);
+    m.compose(p, q, s.set(sc * g.sx, sc * g.sy, sc)); (g.clump ? clumpsI : groundsI).setMatrixAt(g.idx, m);
   });
-  groundsI.instanceMatrix.needsUpdate = true;
+  groundsI.instanceMatrix.needsUpdate = true; clumpsI.instanceMatrix.needsUpdate = true;
+  // fine powder haze around the stream while it pours
+  const pour = smooth(T.dose - 0.2, T.dose + 0.1, t) * (1 - smooth(T.tamp - 0.6, T.tamp - 0.3, t));
+  const ha = haze.geometry.attributes;
+  haze.userData.seed.forEach(([gx, gz, ky, k], i) => {
+    const y = 9 - ((ky * 11 + t * 6 * (0.6 + k)) % 11);
+    const r = 0.35 + 0.5 * (9 - y) / 11;
+    ha.position.setXYZ(i, 0.25 + gx * r + 0.2 * N3(i, t * 0.5, 1), y, gz * r + 0.2 * N3(i, t * 0.5, 5));
+    ha.aSize.setX(i, 0.35 + k * 0.5); ha.aAlpha.setX(i, 0.16 * pour * (0.4 + 0.6 * k)); ha.aColor.setXYZ(i, 0.16, 0.1, 0.065);
+  });
+  ha.position.needsUpdate = ha.aSize.needsUpdate = ha.aAlpha.needsUpdate = ha.aColor.needsUpdate = true;
+  const tampK = smooth(T.tamp - 0.025, T.tamp + 0.02, t);
+  MAT.grounds.displacementScale = lerp(0.075, 0.014, tampK); MAT.grounds.displacementBias = lerp(-0.04, -0.007, tampK);
+  MAT.grounds.normalScale.setScalar(lerp(1.5, 0.7, tampK)); MAT.grounds.roughness = lerp(1.0, 0.85, tampK);
   const drop = smoother(T.tamp - 0.34, T.tamp - 0.02, t), pre = preTampSurface(T.tamp - 0.025);
   let ty = lerp(15, pre.base + pre.peak, Math.pow(drop, 2.2));
   ty = lerp(ty, -0.62, smooth(T.tamp - 0.025, T.tamp + 0.02, t));
   ty += t > T.tamp ? 0.05 * Math.sin((t - T.tamp) * 40) * Math.exp(-(t - T.tamp) * 18) : 0;
+  ty += 9 * Math.pow(smoother(T.tamp + 0.1, T.extract - 0.02, t), 1.6);
   tamper.position.set(0, ty, 0); tamper.rotation.y = 0.6 * (1 - drop);
   const pa = puff.geometry.attributes;
   puff.userData.seed.forEach(([a, k, j], i) => {
@@ -968,11 +1031,11 @@ function shotExtract(t) {
     for (let k = 0; k < N; k++) {
       const s = k / (N - 1), y = lerp(tip.y, surfY + 0.02, s);
       pts.push(V3(lerp(tip.x, Math.sign(tip.x) * 0.14, Math.pow(s, 0.65)) + 0.03 * N3(i * 7, y * 0.8, t * 2.2) * s, y, 0.03 * N3(i * 7 + 3, y * 0.8, t * 2.0) * s));
-      radii.push(0.1 * fl * (1 - 0.42 * Math.pow(s, 0.7)) * (1 + 0.08 * Math.sin(y * 9 + t * 25)));
+      radii.push(fl * (0.11 * (1 - 0.42 * Math.pow(s, 0.6)) + 0.014 * Math.exp(-s * 16)) * (1 + 0.035 * s * Math.sin(y * 11 + t * 24)));
     }
-    m.geometry.dispose(); m.geometry = taperTube(pts, radii, 16);
+    m.geometry.dispose(); m.geometry = taperTube(pts, radii, 20);
   });
-  TEX.stripe.offset.x = -t * 1.6;
+  TEX.stripe.offset.x = -t * 1.35; TEX.stripe.offset.y = t * 0.06;
   const list = [];
   for (const [si, t0] of DRIPS) {
     const age = t - t0; if (age < 0 || age > 0.9) continue;
@@ -1035,7 +1098,7 @@ function shotCup(t) {
     const e = 1 - Math.pow(1 - u, 2.4), ang = s.phi + (1 - e) * 2.4;
     const p = V3(Math.cos(ang) * s.r0, s.y0, Math.sin(ang) * s.r0 + 2.5).lerp(target, e);
     pa.position.setXYZ(i, p.x, p.y, p.z);
-    const life = t < start ? 0 : (t < arrive ? smooth(0, 0.15, u) : Math.exp(-(t - arrive) * 7));
+    const life = t < start ? 0 : (t < arrive ? smooth(0, 0.15, u) : Math.exp(-(t - arrive) * 2.2) * (0.6 + 0.4 * Math.sin((t - arrive) * 9 + s.tw)));
     pa.aSize.setX(i, s.size * (0.7 + 0.3 * Math.sin(t * 25 + s.tw)) * 0.5); pa.aAlpha.setX(i, life * 0.85); pa.aColor.setXYZ(i, 2.4, 1.5, 0.55);
   });
   pa.position.needsUpdate = pa.aSize.needsUpdate = pa.aAlpha.needsUpdate = pa.aColor.needsUpdate = true;
@@ -1054,7 +1117,7 @@ function shotCup(t) {
   const el = lerp(Math.PI / 2 - 0.004, 0.19, k1) - 0.03 * hold;
   const az = lerp(0.9 - 0.45 * smooth(T.cup, T.crane[0], t), 0.0, k1) - 0.06 * hold;
   const cam = orbitCam(tgt, d, el, az, lt < 0.6 ? 0.15 * lt : 0.09 * (1 - k1), lerp(36, 26, k1));
-  const gs = smooth(9.6, 10.4, t);
+  const gs = smooth(9.7, 10.7, t);
   L.glint.position.set(lerp(-12, 12, gs), 6.5, 9); L.glint.intensity = 450 * Math.sin(Math.PI * gs);
   L.key.position.set(lerp(-5, -16, k1), lerp(40, 26, k1), lerp(6, 20, k1)); L.key.target.position.set(0, lerp(5, 2, k1), 0); L.key.intensity = lerp(1600, 2100, k1); L.key.angle = 0.42;
   L.rim.position.set(9, 13, -14); L.rim.intensity = 700;
@@ -1107,6 +1170,7 @@ function renderFrame(i) {
     const off = MB === 1 ? 0 : ((k + 0.5) / MB - 0.5) * SHUTTER / FPS;
     const t = clamp(t0 + off, a, b - 1e-4);
     update(t);
+    dofQuad.material.uniforms.uSeed.value = (i * 13 + k * 7) % 997;
     renderSub();
     accumQuad.material.uniforms.tSrc.value = dofRT.texture; accumQuad.material.uniforms.uW.value = 1 / MB;
     renderer.setRenderTarget(accumRT); renderer.autoClear = false; accumQuad.render(renderer); renderer.autoClear = true;
@@ -1117,7 +1181,7 @@ function renderFrame(i) {
   tagline.material.opacity = smooth(T.tag, T.tag + 0.45, t0);
   tagline.position.set(0, -H / 2 + H * 0.255 + 16 * SCALE * (1 - smooth(T.tag, T.tag + 0.6, t0)), 0);
   shade.material.opacity = smooth(T.tag - 0.5, T.tag + 0.3, t0);
-  fadeQuad.material.opacity = Math.max(1 - smooth(0, 0.25, t0), smooth(DUR - 0.35, DUR, t0));
+  fadeQuad.material.opacity = Math.max(1 - smooth(0, 0.25, t0), smoother(DUR - 1.2, DUR, t0));
   renderer.setRenderTarget(null); renderer.autoClear = false; renderer.render(overlay, overlayCam); renderer.autoClear = true;
 }
 function readPixels() {

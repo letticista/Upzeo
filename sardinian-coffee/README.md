@@ -6,7 +6,7 @@ Questa cartella contiene due video verticali per Reels (1080×1920, 60 fps), gen
 |---|---|---|---|
 | v1 · logo 3D cromato | `render.mjs` | `sardinian_coffee_reveal.mp4` | 6 s |
 | v2 · dalla macinatura alla tazza col logo | `v2/render.mjs` | `sardinian_coffee_reveal_v2.mp4` | 8 s |
-| **v3 · outro Instagram realistico** | `v3/render.mjs` | `sardinian_coffee_outro_v3.mp4` | 11 s |
+| **v3 · outro Instagram realistico** | `v3/render.mjs` | `sardinian_coffee_outro_v3.mp4` | 12 s |
 
 ## v3 · outro per Instagram (consigliata)
 
@@ -15,12 +15,16 @@ Si apre con i chicchi in slow motion, poi le macine, la dose e il tamper, l'estr
 Il look realistico è dato da:
 - illuminazione e riflessi da un HDRI reale di una caffetteria, che fa anche da sfondo sfocato;
 - profondità di campo, motion blur (4 sottofotogrammi per fotogramma), ambient occlusion e ombre morbide;
-- micro-rilievi su chicchi, crema, porcellana e macinato.
+- macinato fatto con una texture scansionata (colore, normal, rugosità, AO e displacement), nel getto e nel cumulo; dopo il tamper resta una pastiglia compatta;
+- caffè che scende ambrato e semi-traslucido, con le striature tipiche dell'espresso al posto della lucentezza da bibita;
+- micro-rilievi su chicchi, crema e porcellana.
+
+Il finale dura di più: la polvere dorata si spegne piano e la dissolvenza al nero dura 1,2 s.
 
 ```bash
 cd ~/Upzeo/sardinian-coffee
 git pull
-npm run preview:v3:chrome -- 0,300,650 0.5   # 3 fotogrammi di prova in v3/preview/
+npm run preview:v3:chrome -- 165,232,300,700 0.5   # 4 fotogrammi di prova in v3/preview/
 npm run render:v3:chrome                      # video completo → sardinian_coffee_outro_v3.mp4
 ```
 
@@ -28,7 +32,7 @@ Se usi il Chromium di Playwright invece di Google Chrome, togli `:chrome` dai co
 
 Opzioni: `-- --mb=8` aumenta il motion blur (più lento); `-- --mb=1 --no-ao` dà una bozza veloce.
 
-Crediti: HDRI `comfy_cafe` e texture `walnut_veneer` da [Poly Haven](https://polyhaven.com), licenza CC0.
+Crediti: HDRI `comfy_cafe` e texture `walnut_veneer` da [Poly Haven](https://polyhaven.com); texture `Ground048` da [ambientCG](https://ambientcg.com), ricolorata come caffè macinato. Tutte con licenza CC0.
 
 ## Renderizzare la v2 sul tuo computer (con la scheda video)
 
