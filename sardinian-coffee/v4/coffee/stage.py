@@ -39,10 +39,11 @@ def configure_render(scene, final=True):
     r.use_overwrite = False
     r.use_placeholder = True
     cy.device = 'GPU'
-    cy.samples = 384 if final else 32
+    # adaptive: most pixels converge long before the cap; OIDN (albedo + normal guided) cleans the rest
+    cy.samples = 256 if final else 32
     cy.use_adaptive_sampling = True
-    cy.adaptive_threshold = 0.008 if final else 0.05
-    cy.adaptive_min_samples = 64 if final else 8
+    cy.adaptive_threshold = 0.01 if final else 0.05
+    cy.adaptive_min_samples = 32 if final else 8
     cy.use_denoising = True
     cy.denoiser = 'OPENIMAGEDENOISE'
     cy.denoising_input_passes = 'RGB_ALBEDO_NORMAL'
