@@ -151,13 +151,14 @@ def build(scene):
     lower_me = burr_solid('lower_burr', 48, 110, 26)
     lower_me.materials.append(coat)
     C.obj_new('lower_burr', lower_me, col, lower)
-    hub_v, hub_f, hub_uv = C.lathe([(0.001, 0.62), (0.13, 0.62), (0.13, 0.4), (0.62, 0.36), (0.66, 0.1), (1.2, 0.02), (1.25, -0.12),
+    # carrier: a low dome in the bore that throws the beans outwards onto the bevel
+    hub_v, hub_f, hub_uv = C.lathe([(0.001, 0.3), (0.35, 0.27), (0.75, 0.17), (1.05, 0.07), (1.2, 0.02), (1.25, -0.12),
                                     (1.93, -0.2), (1.95, -0.85), (0.001, -0.85)], 128)
     hub = C.obj_new('carrier_hub', C.mesh_from_arrays('carrier_hub', hub_v, hub_f, hub_uv), col, lower)
     hub.data.materials.append(M.get('steel'))
     for a in (90, 210, 330):
         screw = _screw(f'screw_{a}', col, lower)
-        screw.location = (2.41 * math.cos(math.radians(a)), 2.41 * math.sin(math.radians(a)), -0.56)
+        screw.location = (2.41 * math.cos(math.radians(a)), 2.41 * math.sin(math.radians(a)), -0.72)
     # upper burr (fixed), mirrored face down, cut away towards the camera for the render; full ring for collisions
     upper = bpy.data.objects.new('upper_assembly', None)
     col.objects.link(upper)
@@ -166,9 +167,9 @@ def build(scene):
     up_me = burr_solid('upper_burr', 44, 110, 26, sweep=1.0, sector=UPPER_SECTOR)
     up_me.materials.append(coat)
     C.obj_new('upper_burr', up_me, col, upper)
-    for a in (90, 210):
+    for a in (210, 330):                        # local 90 lands in the cut-away sector (world -90): no screw floating there
         s = _screw(f'screw_u{a}', col, upper)
-        s.location = (2.41 * math.cos(math.radians(a)), 2.41 * math.sin(math.radians(a)), -0.56)
+        s.location = (2.41 * math.cos(math.radians(a)), 2.41 * math.sin(math.radians(a)), -0.72)
     # chamber: dark housing behind the burrs, a bellows throat above (out of the frame but in the reflections)
     hv, hf, huv = C.lathe([(3.6, -2.5), (3.7, -2.5), (3.7, 2.2), (3.6, 2.2)], 128)
     house = C.obj_new('chamber', C.mesh_from_arrays('chamber', hv, hf, huv), col)
