@@ -1,0 +1,16 @@
+{
+  "name": "sardinian-coffee-reveal",
+  "version": "1.0.0",
+  "description": "Three.js + FFmpeg pipeline that renders sardinian_coffee_reveal.mp4",
+  "scripts": {
+    "render": "node render.mjs",
+    "preview": "node render.mjs --preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "type": "module"
+}
