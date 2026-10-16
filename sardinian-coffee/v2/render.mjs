@@ -45,10 +45,11 @@ function serve() {
 const launch = () => chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-vsync'] });
 async function openPage(browser, port, scale) {
   const page = await browser.newPage({ viewport: { width: 540, height: 960 } });
+  page.setDefaultTimeout(0);
   page.on('pageerror', e => console.error('[page]', e.message));
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.error('[console]', m.text()); });
   await page.goto(`http://127.0.0.1:${port}/v2/index.html?scale=${scale}`);
-  await page.waitForFunction(() => window.RENDER);
+  await page.waitForFunction(() => window.RENDER, null, { timeout: 0 });
   await page.evaluate(() => window.RENDER.ready);
   return page;
 }
@@ -76,7 +77,8 @@ async function renderAll(server) {
   const port = server.address().port;
   let next = 0, done = 0;
   const t0 = Date.now();
-  await Promise.all(Array.from({ length: WORKERS }, async () => {
+  await Promise.all(Array.from({ length: WORKERS }, async (_, w) => {
+    await new Promise(r => setTimeout(r, w * 20000)); // stagger start-up
     const browser = await launch();
     const page = await openPage(browser, port, 1);
     while (next < TOTAL) {
