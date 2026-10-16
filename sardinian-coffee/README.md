@@ -6,6 +6,29 @@ Questa cartella contiene due video verticali per Reels (1080×1920, 60 fps), gen
 |---|---|---|---|
 | v1 · logo 3D cromato | `render.mjs` | `sardinian_coffee_reveal.mp4` | 6 s |
 | v2 · dalla macinatura alla tazza col logo | `v2/render.mjs` | `sardinian_coffee_reveal_v2.mp4` | 8 s |
+| **v3 · outro Instagram realistico** | `v3/render.mjs` | `sardinian_coffee_outro_v3.mp4` | 11 s |
+
+## v3 · outro per Instagram (consigliata)
+
+Si apre con i chicchi in slow motion, poi le macine, la dose e il tamper, l'estrazione e la crema. La camera sale fino alla tazza, dove si stampa il logo; il finale si ferma sul claim "Su cafè de Sardigna". Non ci sono scritte durante i passaggi.
+
+Il look realistico è dato da:
+- illuminazione e riflessi da un HDRI reale di una caffetteria, che fa anche da sfondo sfocato;
+- profondità di campo, motion blur (4 sottofotogrammi per fotogramma), ambient occlusion e ombre morbide;
+- micro-rilievi su chicchi, crema, porcellana e macinato.
+
+```bash
+cd ~/Upzeo/sardinian-coffee
+git pull
+npm run preview:v3:chrome -- 0,300,650 0.5   # 3 fotogrammi di prova in v3/preview/
+npm run render:v3:chrome                      # video completo → sardinian_coffee_outro_v3.mp4
+```
+
+Se usi il Chromium di Playwright invece di Google Chrome, togli `:chrome` dai comandi (`npm run preview:v3`, `npm run render:v3`). I fotogrammi vanno direttamente a FFmpeg, quindi non servono file temporanei su disco.
+
+Opzioni: `-- --mb=8` aumenta il motion blur (più lento); `-- --mb=1 --no-ao` dà una bozza veloce.
+
+Crediti: HDRI `comfy_cafe` e texture `walnut_veneer` da [Poly Haven](https://polyhaven.com), licenza CC0.
 
 ## Renderizzare la v2 sul tuo computer (con la scheda video)
 

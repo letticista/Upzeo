@@ -9,7 +9,11 @@
     "render:v2:cpu": "node v2/render.mjs",
     "preview:v2": "node v2/render.mjs --gpu --preview",
     "render:v2:chrome": "node v2/render.mjs --chrome",
-    "preview:v2:chrome": "node v2/render.mjs --chrome --preview"
+    "preview:v2:chrome": "node v2/render.mjs --chrome --preview",
+    "render:v3": "node v3/render.mjs --gpu",
+    "render:v3:chrome": "node v3/render.mjs --chrome",
+    "preview:v3": "node v3/render.mjs --gpu --preview",
+    "preview:v3:chrome": "node v3/render.mjs --chrome --preview"
   },
   "keywords": [],
   "author": "",
