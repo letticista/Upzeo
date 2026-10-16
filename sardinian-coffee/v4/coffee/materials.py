@@ -347,42 +347,50 @@ def crema():
     """Espresso crema: a wet foam of 10-150 um CO2 bubbles in emulsified oils over near-black coffee.
 
     Optics: light scatters inside the foam (random-walk SSS; transport mean free path ~1.6-2x the bubble size, so a
-    red-shifted radius with anisotropy 0.5), the top is glossy (fresh wet bubble films, roughness 0.08-0.2).
-    Colour (sampled from a top-down photo of a fresh double): centre #C5853A, mid #BB702A, rim #AA652B; the oldest, darkest
-    crema ends up at the wall. Subtle tiger flecks (fines in the Plateau borders) streak away from where the coffee landed.
+    short, red-shifted radius), the top is glossy (fresh wet bubble films, roughness 0.08-0.2) with a thin oily sheen.
+    Colour (sampled from top-down photos of fresh doubles, as albedo under SSS): hazelnut centre, reddish-brown mid,
+    darker at the wall where the oldest foam is pushed. Detail at three scales: the 'tiger' marbling drawn out by the
+    swirl of the pour (mesh attribute 'tiger', -1..1), dark specks of fines (0.1-0.3 mm) caught in the foam, and the
+    bubble relief (20-60 um and 100-200 um cells, a few larger ones as separate caps).
     Mesh attributes (point domain): 'rim' 0 centre .. 1 at the cup wall, 'fresh' new dark coffee under the stream,
-    'age' 0 newest .. 1 oldest foam (darker), 'flow' angle of the radial streaks (radians)."""
+    'age' 0 newest .. 1 oldest foam (darker), 'tiger' marbling."""
     g = Graph('crema')
     co = g.coord()
     rim = g.attr('rim', 'Fac')
     age = g.attr('age', 'Fac')
     fresh = g.attr('fresh', 'Fac')
-    # colour by age and position: centre -> mid -> rim tones, darkened by age
-    # photo targets #C5853A / #BB702A / #AA652B include the lighting; as albedo under random-walk SSS they render too
-    # orange, so the ramp is a little darker and browner
-    base = g.ramp(g.math('MAXIMUM', rim, age), [(0.0, (0.44, 0.21, 0.065)), (0.55, (0.34, 0.14, 0.035)), (0.93, (0.25, 0.09, 0.02)), (1.0, (0.16, 0.05, 0.012))])
-    warp = g.noise(co, 1.1, detail=3.0).outputs['Color']
-    wco = g.node('ShaderNodeMix', data_type='VECTOR')
-    g.set(wco.inputs[0], 0.4)
-    g.link(co, wco.inputs[4])
-    g.link(warp, wco.inputs[5])
-    wv = wco.outputs[1]
-    mott = g.noise(wv, 1.6, detail=5.0, rough=0.6)
-    base = g.mix_rgb(g.map_range(mott.outputs['Fac'], 0.3, 0.7, 0.0, 0.35), base, (0.56, 0.3, 0.1), 'MIX')
-    base = g.mix_rgb(g.map_range(mott.outputs['Fac'], 0.25, 0.45, 0.3, 0.0), base, (0.2, 0.075, 0.018), 'MIX')
-    # tiger flecks: a few % of fine dark specks, stretched along the flow
-    fl = g.noise(g.mapping(wv, (1.0, 4.0, 1.0)), 22.0, detail=2.0, distortion=0.8)
-    fleck = g.map_range(fl.outputs['Fac'], 0.66, 0.78, 0.0, 0.45)
-    base = g.mix_rgb(fleck, base, (0.16, 0.055, 0.012))
-    base = g.mix_rgb(fresh, base, (0.035, 0.012, 0.004))
-    # microbubbles (20-60 um and 100-150 um cells) as a shallow relief, plus per-cell gloss variation
-    small = g.voronoi(co, 250.0, 'F1')
-    mid = g.voronoi(co, 80.0, 'F1')
-    h = g.math('ADD', g.math('MULTIPLY', small.outputs['Distance'], 0.4), g.math('MULTIPLY', mid.outputs['Distance'], 0.6))
-    rough = g.math('ADD', g.map_range(fresh, 0, 1, 0.14, 0.05), g.map_range(mid.outputs['Color'], 0, 1, -0.05, 0.05))
+    tiger = g.attr('tiger', 'Fac')
+    # tone by position and age
+    base = g.ramp(g.math('MAXIMUM', g.math('MULTIPLY', rim, 0.8), age),
+                  [(0.0, (0.42, 0.2, 0.07)), (0.5, (0.34, 0.15, 0.048)), (0.82, (0.22, 0.083, 0.024)), (1.0, (0.1, 0.034, 0.01))])
+    # marbling: lighter foam streaks and darker coffee-rich ones, with a little fine-scale breakup
+    brk = g.noise(co, 18.0, detail=3.0)
+    tg = g.math('ADD', tiger, g.map_range(brk.outputs['Fac'], 0.3, 0.7, -0.25, 0.25))
+    base = g.mix_rgb(g.map_range(tg, 0.1, 0.9, 0.0, 0.45), base, (0.58, 0.33, 0.14))
+    base = g.mix_rgb(g.map_range(tg, -0.15, -0.9, 0.0, 0.4), base, (0.15, 0.055, 0.016))
+    # specks of fines: a random third of small cells, dark round dots
+    sp = g.voronoi(co, 32.0, 'F1')
+    pick = g.math('LESS_THAN', g.node('ShaderNodeSeparateColor', {'Color': sp.outputs['Color']}).outputs[0], 0.3)
+    dot = g.math('MULTIPLY', pick, g.map_range(sp.outputs['Distance'], 0.22, 0.1, 0.0, 0.8))
+    base = g.mix_rgb(dot, base, (0.06, 0.022, 0.007))
+    # tiny light foam heads
+    hd = g.voronoi(co, 140.0, 'F1')
+    head = g.math('MULTIPLY', g.math('GREATER_THAN', g.node('ShaderNodeSeparateColor', {'Color': hd.outputs['Color']}).outputs[1], 0.8),
+                  g.map_range(hd.outputs['Distance'], 0.2, 0.05, 0.0, 0.4))
+    base = g.mix_rgb(head, base, (0.66, 0.44, 0.24))
+    base = g.mix_rgb(fresh, base, (0.03, 0.011, 0.004))
+    # relief: micro-bubbles and a soft undulation of the foam
+    small = g.voronoi(co, 260.0, 'F1')
+    mid = g.voronoi(co, 75.0, 'F1')
+    und = g.noise(co, 9.0, detail=4.0)
+    h = g.math('ADD', g.math('ADD', g.math('MULTIPLY', small.outputs['Distance'], 0.3), g.math('MULTIPLY', mid.outputs['Distance'], 0.45)),
+               g.math('MULTIPLY', und.outputs['Fac'], 0.8))
+    h = g.math('SUBTRACT', h, g.math('MULTIPLY', dot, 0.3))
+    rough = g.math('ADD', g.map_range(fresh, 0, 1, 0.16, 0.05), g.map_range(mid.outputs['Color'], 0, 1, -0.06, 0.06))
     g.p(Base_Color=base, Roughness=rough, IOR=1.34,
-        Subsurface_Weight=g.map_range(fresh, 0, 1, 1.0, 0.1), Subsurface_Radius=(1.0, 0.45, 0.15), Subsurface_Scale=0.02,
-        Subsurface_Anisotropy=0.5, Normal=g.bump(h, 0.12, 0.002))
+        Subsurface_Weight=g.map_range(fresh, 0, 1, 0.7, 0.1), Subsurface_Radius=(1.0, 0.5, 0.25), Subsurface_Scale=0.008,
+        Subsurface_Anisotropy=0.4, Normal=g.bump(h, 0.45, 0.002),
+        Coat_Weight=g.map_range(fresh, 0, 1, 0.3, 0.0), Coat_Roughness=0.1, Coat_IOR=1.47)
     return g.mat
 
 

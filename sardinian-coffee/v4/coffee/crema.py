@@ -76,15 +76,34 @@ def build_crema(col, parent=None, name='crema', rings=140, segs=420, n_bubbles=1
     bm.to_mesh(me)
     bm.free()
     me.shade_smooth()
-    for a in ('rim', 'fresh', 'age'):
+    for a in ('rim', 'fresh', 'age', 'tiger'):
         me.attributes.new(a, 'FLOAT', 'POINT')
     rr = np.concatenate([r, r]).astype(np.float32)
     me.attributes['rim'].data.foreach_set('value', rr)
     me.attributes['age'].data.foreach_set('value', (rr ** 3 * 0.6).astype(np.float32))
+    tg = tiger_pattern(top[:, 0], top[:, 1], seed)
+    me.attributes['tiger'].data.foreach_set('value', np.concatenate([tg, tg]).astype(np.float32))
     me.materials.append(M.get('crema'))
     ob = C.obj_new(name, me, col, parent)
     bubbles = _bubbles(col, ob, n_bubbles, seed, name)
     return Crema(ob, n, rings, segs, bubbles)
+
+
+def tiger_pattern(x, y, seed=0):
+    """The 'tiger' marbling of crema, -1 (dark) .. 1 (light), on unit-radius coordinates.
+
+    The coffee lands off-centre and swirls, so lighter foam and darker coffee-rich streaks are drawn out along
+    spirals: noise that is fine across the radius and long along the (twisted) circumference, over a softer
+    isotropic mottling."""
+    from .common import Simplex3, fbm
+    nz = Simplex3(100 + seed)
+    r = np.hypot(x, y)
+    th = np.arctan2(y, x) + 1.5 * (1 - r) ** 1.4 + 0.35 * nz(x * 1.2, y * 1.2, 3.0)
+    ang = np.clip(r * 2.5, 0, 1) * 1.4          # no pinwheel at the centre: the streaks only stretch where there is room
+    spiral = fbm(r * 9.0, np.cos(th) * ang, np.sin(th) * ang, 4, nz)
+    blotch = fbm(x * 3.2 + 7.0, y * 3.2, 1.7, 4, nz)
+    t = 1.3 * spiral + 1.1 * blotch
+    return np.clip(t, -1.0, 1.0)
 
 
 def _bubbles(col, crema_ob, n, seed, name):

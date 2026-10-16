@@ -1,14 +1,67 @@
 # Sardinian Coffee Corner · reel 3D
 
-Questa cartella contiene due video verticali per Reels (1080×1920, 60 fps), generati interamente da codice. La scena 3D è fatta in Three.js e renderizzata fotogramma per fotogramma in Chromium. FFmpeg si occupa di color grading, audio sintetizzato e codifica H.264.
+Questa cartella contiene i video verticali per Reels, generati interamente da codice. Le versioni v1–v3 sono in Three.js (1080×1920, renderizzate in Chromium); la v4 è in Blender/Cycles in 4K. FFmpeg si occupa di color grading, audio sintetizzato e codifica H.264.
 
 | Versione | Script | Output | Durata |
 |---|---|---|---|
 | v1 · logo 3D cromato | `render.mjs` | `sardinian_coffee_reveal.mp4` | 6 s |
 | v2 · dalla macinatura alla tazza col logo | `v2/render.mjs` | `sardinian_coffee_reveal_v2.mp4` | 8 s |
-| **v3 · outro Instagram realistico** | `v3/render.mjs` | `sardinian_coffee_outro_v3.mp4` | 12 s |
+| v3 · outro Instagram realistico | `v3/render.mjs` | `sardinian_coffee_outro_v3.mp4` | 12 s |
+| **v4 · Blender/Cycles, 4K verticale, fisica vera** | `v4/build.py` + `v4/render.py` + `v4/encode.py` | `sardinian_coffee_outro_v4_4k.mp4` | 12 s |
 
-## v3 · outro per Instagram (consigliata)
+## v4 · 4K verticale in path tracing (consigliata)
+
+La v4 è rifatta da zero in **Blender 5.2 LTS con Cycles** (path tracing). Ogni inquadratura è una scena Blender sulla stessa timeline; la fisica è simulata e "cotta" (baked) quando si costruisce il file, poi il rendering gira sulla GPU del tuo Mac.
+
+| Tempo | Inquadratura | Cosa succede | Fisica |
+|---|---|---|---|
+| 0,0–1,0 s | chicchi | i chicchi cadono al rallentatore nell'imbuto della macina | corpi rigidi Bullet (massa da volume × 0,65 g/cm³, attrito e rimbalzo misurati), 20 sotto-passi per fotogramma |
+| 1,0–2,6 s | macine | macine piane tipo **Ceado E6C** (64 mm, 48 denti curvi, rivestimento iridescente Opalglide, 1480 giri/min); i chicchi entrano e si **frantumano davvero** | ogni chicco è pre-fratturato in 8–12 pezzi (Voronoi) tenuti insieme da vincoli che si rompono all'urto coi denti; 20 sotto-passi, 30 iterazioni |
+| 2,6–4,0 s | dose e tamper | il macinato scende nel cestello, forma un cono, il tamper lo pressa | particelle con resistenza dell'aria e un campo di altezze con angolo di riposo; ≥ 15 sotto-passi |
+| 4,0–7,2 s | estrazione bottomless | gocce in **punti a caso** del filtro, crescono, scivolano e si fondono, poi in circa un secondo diventano **un unico cono e un unico filo**; nella tazza si forma la crema | simulazione propria a 24 sotto-passi: gocce pendenti (angolo di contatto, isteresi, goccia che si stacca a ~4 mm), coalescenza, film che drena verso il centro, getto con instabilità di Rayleigh-Plateau, gocce che cadono con attrito dell'aria |
+| 7,2–12 s | tazza | crema dall'alto, la camera sale, il logo si stampa sulla tazza, il claim | vapore volumetrico, scintille dorate |
+
+Specifiche di rendering usate (in `v4/coffee/stage.py`): 2160×3840 (4K UHD verticale), Cycles path tracing (OptiX sulle schede NVIDIA, Metal sui Mac), vista colore **AgX** su spazio di lavoro **ACEScg**, motion blur reale con otturatore 0,5 (180°), 16 rimbalzi totali (diffusi 6, glossy 8, trasmissione 12, volume 4), caustiche riflesse e rifratte attive, campionamento adattivo fino a 256 campioni + denoiser OpenImageDenoise, PNG a 16 bit. Materiali Principled BSDF con rugosità non uniforme, normal map ad alta frequenza, micro-displacement sul macinato, subsurface scattering (crema, porcellana, foglie di mirto), IOR fisici (caffè 1,345, porcellana/smalto 1,5–1,52). Illuminazione: HDRI di una caffetteria (`comfy_cafe`) + softbox ad area con potenze reali in watt.
+
+### Cosa serve sul Mac
+
+1. **Blender 5.2 LTS** per Apple Silicon: <https://download.blender.org/release/Blender5.2/blender-5.2.0-macos-arm64.dmg>. Trascinalo in Applicazioni. Nei comandi qui sotto `blender` è
+   `/Applications/Blender.app/Contents/MacOS/Blender` (puoi creare un alias: `alias blender=/Applications/Blender.app/Contents/MacOS/Blender`).
+2. **FFmpeg**: `brew install ffmpeg`.
+3. Circa **15 GB liberi** su disco (720 PNG a 16 bit in 4K).
+
+### Comandi
+
+```bash
+cd ~/Upzeo/sardinian-coffee
+git pull
+
+# 1. costruisce il file Blender e calcola tutta la fisica (qualche minuto) -> v4/coffee.blend
+blender -b --factory-startup -P v4/build.py
+
+# 2. prova veloce: tre fotogrammi a piena qualità, stima del tempo totale
+blender -b v4/coffee.blend -P v4/render.py -- --bench
+
+# 3. (consigliato) bozza di tutto il film a 1/4 di risoluzione, per controllare movimenti e tempi
+blender -b v4/coffee.blend -P v4/render.py -- --scale 0.25 --samples 32 --out v4/frames_draft
+python3 v4/encode.py -- --frames v4/frames_draft --scale 0.25 --out bozza_v4.mp4
+
+# 4. rendering finale 4K (riprende da dove si era fermato se lo interrompi)
+blender -b v4/coffee.blend -P v4/render.py
+
+# 5. video finale con titolo e audio -> sardinian_coffee_outro_v4_4k.mp4
+python3 v4/encode.py
+```
+
+Il rendering in 4K con path tracing è lungo: il comando `--bench` ti dice quanto ci vorrà sul tuo Mac. Se è troppo:
+- `--samples 128` dimezza circa i tempi (il denoiser compensa bene);
+- costruisci a 30 fps invece di 60 (`blender -b --factory-startup -P v4/build.py -- --fps 30`, poi `python3 v4/encode.py -- --fps 30`): metà dei fotogrammi;
+- puoi dividere il lavoro fra più computer con `--frames 1-360` e `--frames 361-720`;
+- `--shots extract` renderizza una sola inquadratura.
+
+Fotogrammi singoli di prova: `blender -b v4/coffee.blend -P v4/render.py -- --still 300,450 --scale 0.5` (finiscono in `v4/preview/`).
+
+## v3 · outro per Instagram
 
 Si apre con i chicchi in slow motion, poi le macine, la dose e il tamper. L'estrazione è con portafiltro senza fondo (bottomless), come nei video di Instagram: le gocce escono dai fori del filtro, si uniscono in un velo, si raccolgono nel cono e da lì scende un unico filo di caffè nella tazza. Dalla crema la camera sale fino alla tazza, dove si stampa il logo; il finale si ferma sul claim "Su cafè de Sardigna". Non ci sono scritte durante i passaggi.
 
