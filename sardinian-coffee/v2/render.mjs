@@ -51,9 +51,11 @@ function serve() {
   return new Promise(r => server.listen(0, '127.0.0.1', () => r(server)));
 }
 const launch = () => GPU
-  ? chromium.launch({ headless: false, args: ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--enable-unsafe-swiftshader', '--disable-gpu-vsync', '--disable-background-timer-throttling', '--disable-renderer-backgrounding'] })
+  ? chromium.launch({ headless: false, args: ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--enable-unsafe-swiftshader', '--disable-gpu-vsync', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] })
   : chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-vsync'] });
-async function openPage(browser, port, scale) {
+const RENDERER_INFO = () => { const g = document.createElement('canvas').getContext('webgl2'); if (!g) return 'nessun WebGL2'; const d = g.getExtension('WEBGL_debug_renderer_info'); return g.getParameter(d ? d.UNMASKED_RENDERER_WEBGL : g.RENDERER); };
+async function openPage(browser, port, scale, tag = '') {
+  const t0 = Date.now();
   const page = await browser.newPage({ viewport: { width: 540, height: 960 } });
   page.setDefaultTimeout(0);
   let fail;
@@ -61,10 +63,15 @@ async function openPage(browser, port, scale) {
   page.on('pageerror', e => { console.error('[page]', e.message); fail(new Error(`the page failed to start: ${e.message}`)); });
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.error('[console]', m.text()); });
   await page.goto(`http://127.0.0.1:${port}/v2/index.html?scale=${scale}`);
+  const gpu = await page.evaluate(RENDERER_INFO);
+  console.log(`${tag}scheda grafica: ${gpu}`);
+  if (GPU && /swiftshader|llvmpipe|software/i.test(gpu)) console.log(`${tag}ATTENZIONE: Chromium non sta usando la GPU, il render sarà lento`);
+  console.log(`${tag}preparo scena e texture…`);
   await Promise.race([failed, (async () => {
     await page.waitForFunction(() => window.RENDER, null, { timeout: 180000 });
     await page.evaluate(() => window.RENDER.ready);
   })()]);
+  console.log(`${tag}pronto in ${((Date.now() - t0) / 1000).toFixed(1)}s, inizio i fotogrammi`);
   return page;
 }
 
@@ -76,7 +83,6 @@ async function runPreview(server) {
   const browser = await launch();
   const t0 = Date.now();
   const page = await openPage(browser, server.address().port, scale);
-  console.log(`init ${(Date.now() - t0) / 1000}s · ${await page.evaluate(() => { const g = document.createElement('canvas').getContext('webgl2'); const d = g.getExtension('WEBGL_debug_renderer_info'); return g.getParameter(d ? d.UNMASKED_RENDERER_WEBGL : g.RENDERER); })}`);
   for (const f of frames) {
     const t1 = Date.now();
     const data = await page.evaluate(async i => { await window.RENDER.frame(i); return document.getElementById('c').toDataURL('image/png'); }, f);
@@ -96,14 +102,16 @@ async function renderAll(server, first = 0, last = TOTAL - 1) {
   const t0 = Date.now();
   await Promise.all(Array.from({ length: WORKERS }, async (_, w) => {
     await new Promise(r => setTimeout(r, w * 20000)); // stagger start-up
+    const tag = WORKERS > 1 ? `[worker ${w + 1}] ` : '';
+    console.log(`${tag}avvio Chromium${GPU ? ' sulla GPU (si apre una finestra, lasciala aperta)' : ' (software)'}…`);
     const browser = await launch();
-    const page = await openPage(browser, port, 1);
+    const page = await openPage(browser, port, 1, tag);
     while (next <= last) {
       const f = next++;
       const status = await page.evaluate(([i, url]) => window.RENDER.post(i, url), [f, `/frame/${String(f).padStart(4, '0')}`]);
       if (status !== 200) throw new Error(`frame ${f} upload failed`);
       done++;
-      if (done % 20 === 0) {
+      if (done % 5 === 0 || done === count) {
         const el = (Date.now() - t0) / 1000;
         console.log(`${done}/${count} frames · ${el.toFixed(0)}s elapsed · ~${(el / done * (count - done)).toFixed(0)}s left`);
       }
