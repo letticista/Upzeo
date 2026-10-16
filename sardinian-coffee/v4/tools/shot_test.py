@@ -19,6 +19,7 @@ ap.add_argument('--samples', type=int, default=16)
 ap.add_argument('--out', default=str(V4 / 'preview'))
 ap.add_argument('--save', action='store_true', help='also save the .blend next to the stills')
 ap.add_argument('--no-mb', action='store_true')
+ap.add_argument('--border', default='', help='render only a region: xmin,ymin,xmax,ymax in 0..1 (from bottom left)')
 args = ap.parse_args(argv)
 
 import bpy  # noqa: E402
@@ -42,6 +43,9 @@ sc.cycles.samples = args.samples
 sc.cycles.adaptive_min_samples = max(4, args.samples // 4)
 if args.no_mb:
     sc.render.use_motion_blur = False
+if args.border:
+    sc.render.border_min_x, sc.render.border_min_y, sc.render.border_max_x, sc.render.border_max_y = map(float, args.border.split(','))
+    sc.render.use_border, sc.render.use_crop_to_border = True, True
 frames = [int(x) for x in args.frames.split(',') if x] or [sc.frame_start, (sc.frame_start + sc.frame_end) // 2, sc.frame_end]
 for f in frames:
     sc.frame_set(f)
