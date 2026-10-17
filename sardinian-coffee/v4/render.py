@@ -4,7 +4,7 @@
     blender -b v4/coffee.blend -P v4/render.py -- --frames 241-432   a range (several machines can split the work)
     blender -b v4/coffee.blend -P v4/render.py -- --still 300,450 --scale 0.25 --samples 64   quick stills into v4/preview
     blender -b v4/coffee.blend -P v4/render.py -- --bench             times 3 frames at full quality and estimates the total
-    blender -b v4/coffee.blend -P v4/render.py -- --scale 0.25 --samples 32 --out v4/frames_draft   a quick draft of the whole film
+    blender -b v4/coffee.blend -P v4/render.py -- --scale 0.5 --samples 32 --out v4/frames_draft   a quick draft of the whole film
 
 Frames already on disk are skipped, so an interrupted render can simply be started again.
 """

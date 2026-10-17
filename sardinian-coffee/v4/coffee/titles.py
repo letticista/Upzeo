@@ -1,4 +1,4 @@
-"""The closing title, rendered once as a transparent 4K PNG that the encoder fades in over the last shot,
+"""The closing title, rendered once as a transparent PNG at the film resolution that the encoder fades in over the last shot,
 plus the soft dark gradient that sits behind it."""
 import bpy
 import numpy as np

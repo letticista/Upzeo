@@ -711,7 +711,7 @@ def build(scene):
     # the liquid: one metaball family
     mb = bpy.data.metaballs.new('espresso_liquid')
     mb.resolution = 0.03
-    mb.render_resolution = 0.006
+    mb.render_resolution = 0.009          # ~5 px per cell at 1080x1920 in the closest shot; smooth normals hide the facets
     mb.threshold = 0.6
     mb.update_method = 'UPDATE_ALWAYS'
     mb.materials.append(espresso_material())
