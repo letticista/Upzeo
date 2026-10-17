@@ -289,21 +289,48 @@ def bean_inner():
     return g.mat
 
 
+GROUNDS_ALBEDO = (0.066, 0.0208, 0.0072)    # linear: median coffee grain (fracture faces), shot_dose's grain shader
+PRESSED_TINT = (1.12, 1.02, 0.88)            # a pressed surface reflects more and keeps the hue: lighter, a touch oranger
+
+
 def grounds():
-    """Ground espresso: scanned granular maps (ambientCG Ground048, regraded) with true micro-displacement."""
+    """The bed of ground espresso under the grains (the dose shot instances real-size grains and clumps over it, see
+    shot_dose): what shows between them is grit and the velvet of fines that coats and fills the gaps. Procedural at real
+    scale on UV = (x, y) in cm, so the texture rides the rising bed: 0.16 mm grit domes over 70 um grit and 40 um cell
+    fragments, each its own shade, deep and dark between them; true micro-displacement. 'tamped' (0..1, a mesh
+    attribute): pressed flat by the polished tamper base into a mosaic of flattened grains with fine dark pores here and
+    there along their boundaries, a little lighter overall (compaction raises reflectance) and satin."""
     g = Graph('grounds')
-    uv = g.mapping(g.coord('UV'), (1.5, 1.5, 1.5))
-    c = g.image(V3_ASSETS / 'grounds_color_2k.jpg', 'sRGB', uv)
-    nm = g.image(V3_ASSETS / 'grounds_normal_2k.jpg', 'Non-Color', uv)
-    r = g.image(V3_ASSETS / 'grounds_rough_1k.jpg', 'Non-Color', uv)
-    ao = g.image(V3_ASSETS / 'grounds_ao_1k.jpg', 'Non-Color', uv)
-    d = g.image(V3_ASSETS / 'grounds_disp_1k.jpg', 'Non-Color', uv)
-    col = g.mix_rgb(1.0, c.outputs['Color'], ao.outputs['Color'], 'MULTIPLY')
-    tamp = g.attr('tamped', 'Fac')   # 1 after the tamp: compact, slightly sheen
-    nmap = g.node('ShaderNodeNormalMap', {'Color': nm.outputs['Color'], 'Strength': g.map_range(tamp, 0, 1, 1.4, 0.6)})
-    g.p(Base_Color=g.mix_rgb(0.15, col, (0.05, 0.028, 0.016)), Roughness=g.map_range(r.outputs['Color'], 0, 1, g.map_range(tamp, 0, 1, 0.85, 0.7), 1.0),
-        Normal=nmap.outputs[0])
-    disp = g.node('ShaderNodeDisplacement', {'Height': d.outputs['Color'], 'Midlevel': 0.5, 'Scale': g.map_range(tamp, 0, 1, 0.07, 0.012)})
+    p = g.coord('UV')
+    tamp = g.attr('tamped', 'Fac')
+    c1 = g.voronoi(p, 1 / 0.016, randomness=0.95)
+    c2 = g.voronoi(p, 1 / 0.007)
+    edge = g.node('ShaderNodeTexVoronoi', {'Vector': p, 'Scale': 1 / 0.018, 'Randomness': 1.0}, feature='DISTANCE_TO_EDGE')
+    pc = g.voronoi(p, 1 / 0.018)                                          # the pressed grains (same cells as `edge`)
+    fines = g.noise(p, 250.0, detail=3.0, rough=0.6)
+    gaps = g.noise(p, 40.0, detail=2.0, rough=0.5)
+    mottle = g.noise(p, 1.6, detail=3.0, rough=0.5)
+    h1 = g.map_range(c1.outputs['Distance'], 0.0, 0.8, 1.0, 0.0)
+    h2 = g.map_range(c2.outputs['Distance'], 0.0, 0.7, 1.0, 0.0)
+    pore = g.math('MAXIMUM', g.map_range(edge.outputs['Distance'], 0.0, 0.07, 0.0, 1.0),
+                  g.map_range(gaps.outputs['Fac'], 0.45, 0.6, 1.0, 0.0))       # 0 on some of the boundaries between grains
+    loose_h = g.math('ADD', g.math('ADD', g.math('MULTIPLY', h1, 0.6), g.math('MULTIPLY', h2, 0.28)),
+                     g.math('MULTIPLY', fines.outputs['Fac'], 0.12))
+    pressed_h = g.math('ADD', g.math('MULTIPLY', pore, 0.5), g.math('ADD', g.math('MULTIPLY', h2, 0.3), g.math('MULTIPLY', fines.outputs['Fac'], 0.2)))
+    height = g.node('ShaderNodeMix', {'Factor': tamp, 'A': loose_h, 'B': pressed_h}).outputs[0]
+    # loose: the gaps between grit grains fall into shadow; pressed: flat grains, pores between some of them
+    loose_k = g.math('MULTIPLY', g.math('MULTIPLY', g.map_range(loose_h, 0.1, 0.85, 0.2, 1.2),
+                                        g.map_range(c1.outputs['Color'], 0.0, 1.0, 0.6, 1.45)), 0.62)
+    pressed_k = g.math('MULTIPLY', g.math('MULTIPLY', g.map_range(pore, 0.0, 1.0, 0.25, 1.0),
+                                          g.map_range(pc.outputs['Color'], 0.0, 1.0, 0.45, 1.6)), 0.6)
+    k = g.node('ShaderNodeMix', {'Factor': tamp, 'A': loose_k, 'B': pressed_k}).outputs[0]
+    k = g.math('MULTIPLY', g.math('MULTIPLY', k, g.map_range(c2.outputs['Color'], 0.0, 1.0, 0.8, 1.2)),
+               g.map_range(mottle.outputs['Fac'], 0.3, 0.7, 0.85, 1.15))
+    col = g.mix_rgb(1.0, GROUNDS_ALBEDO, g.node('ShaderNodeCombineXYZ', {'X': k, 'Y': k, 'Z': k}).outputs[0], 'MULTIPLY')
+    col = g.mix_rgb(tamp, col, g.mix_rgb(1.0, col, PRESSED_TINT, 'MULTIPLY'))
+    g.p(Base_Color=col, Roughness=g.map_range(tamp, 0, 1, 0.95, 0.72), Specular_IOR_Level=0.3, Sheen_Weight=g.math('MULTIPLY', tamp, 0.08),
+        Sheen_Roughness=0.35, Sheen_Tint=(0.85, 0.66, 0.5))
+    disp = g.node('ShaderNodeDisplacement', {'Height': height, 'Midlevel': 0.5, 'Scale': g.map_range(tamp, 0, 1, 0.02, 0.004)})
     g.link(disp.outputs[0], g.out.inputs['Displacement'])
     g.mat.displacement_method = 'BOTH'
     return g.mat

@@ -70,3 +70,52 @@ def _out_named(node, name, kind):
         if o.name == name and o.type == kind and o.enabled:
             return o
     raise RuntimeError(f'no {kind} output {name} on {node.name}')
+
+
+def layer_instancer(name, shapes_collection):
+    """Mesh vertices -> one shape per point with a full affine transform from numpy: 'shape' (INT) picks the child of
+    the collection (children sort by name), 'xf' (FLOAT4X4, column-major) is the whole instance matrix (rotation,
+    non-uniform and world-space scale, position), points whose 'vis' (FLOAT) is <= 0.02 are dropped first. An 'id'
+    attribute on the points carries over to the instances and keeps each one's identity between motion-blur steps.
+    The shapes keep their own materials; every other point attribute reaches the shader as an instancer attribute."""
+    ng = bpy.data.node_groups.new(name, 'GeometryNodeTree')
+    ng.interface.new_socket('Geometry', in_out='INPUT', socket_type='NodeSocketGeometry')
+    ng.interface.new_socket('Geometry', in_out='OUTPUT', socket_type='NodeSocketGeometry')
+    N = ng.nodes.new
+    L = ng.links.new
+    gi, go = N('NodeGroupInput'), N('NodeGroupOutput')
+    m2p = N('GeometryNodeMeshToPoints')
+    vis = _named(N, 'FLOAT', 'vis')
+    hide = N('FunctionNodeCompare')
+    hide.data_type = 'FLOAT'
+    hide.operation = 'LESS_EQUAL'
+    _in(hide, 'B', 'VALUE').default_value = 0.02
+    drop = N('GeometryNodeDeleteGeometry')
+    drop.domain = 'POINT'
+    shape = _named(N, 'INT', 'shape')
+    xf = _named(N, 'FLOAT4X4', 'xf')
+    coll = N('GeometryNodeCollectionInfo')
+    coll.inputs['Collection'].default_value = shapes_collection
+    coll.inputs['Separate Children'].default_value = True
+    coll.inputs['Reset Children'].default_value = True
+    inst = N('GeometryNodeInstanceOnPoints')
+    inst.inputs['Pick Instance'].default_value = True
+    put = N('GeometryNodeSetInstanceTransform')
+    L(gi.outputs[0], m2p.inputs['Mesh'])
+    L(_out_named(vis, 'Attribute', 'VALUE'), _in(hide, 'A', 'VALUE'))
+    L(m2p.outputs[0], drop.inputs['Geometry'])
+    L(hide.outputs[0], drop.inputs['Selection'])
+    L(drop.outputs[0], inst.inputs['Points'])
+    L(coll.outputs[0], inst.inputs['Instance'])
+    L(_out_named(shape, 'Attribute', 'INT'), inst.inputs['Instance Index'])
+    L(inst.outputs[0], put.inputs['Instances'])
+    L(_out_named(xf, 'Attribute', 'MATRIX'), put.inputs['Transform'])
+    L(put.outputs[0], go.inputs[0])
+    return ng
+
+
+def _named(N, kind, name):
+    nd = N('GeometryNodeInputNamedAttribute')
+    nd.data_type = kind
+    nd.inputs['Name'].default_value = name
+    return nd

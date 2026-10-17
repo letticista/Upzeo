@@ -6,7 +6,7 @@ Units: cm, g, s. Every force acts in real seconds; the edit plays the result at 
 
 Particles (each rendered particle is a super-particle: it carries the mass of many identical grains, see shot_dose):
   0 grain  coarse mode, 0.25-0.35 mm chips, envelope density 0.65 g/cm^3 (cells keep their roast pores, like the bean)
-  1 clump  0.5-1.5 mm agglomerates of grains and fines, loosely bound (0.42 g/cm^3)
+  1 clump  0.5-2 mm agglomerates of grains and fines, loosely bound (0.42 g/cm^3)
   2 fine   airborne fines agglomerates (fines are fractured cell walls, 1.2 g/cm^3); they trace the air
   3 puff   fines agglomerates (porous, 0.6 g/cm^3) blown out of the tamper gap at the tamp
 Flight: gravity + Schiller-Naumann drag (Stokes to quadratic, Re 0.5-40 here) relative to the air. The air is the
@@ -299,10 +299,10 @@ class Dose:
         tb = [self._births(ng, flow), self._births(nc, c['clump_weight']),
               self._births(nf, flow), np.zeros(npf)]
         kind = np.concatenate([np.full(n, k, np.int8) for k, n in enumerate((ng, nc, nf, npf))])
-        # diameters (cm): coarse mode log-normal around 0.30 mm; clumps 0.5-1.5 mm, small ones commoner; fines
+        # diameters (cm): coarse mode log-normal around 0.30 mm; clumps 0.5-2 mm, small ones commoner; fines
         # agglomerates 60-120 um (single 30-40 um fines are below a pixel even at 4K)
         dg = np.clip(0.030 * np.exp(0.18 * rng.standard_normal(ng)), 0.02, 0.045)
-        dc = 0.05 * 3.0 ** (rng.random(nc) ** 1.7)
+        dc = 0.05 * 4.0 ** (rng.random(nc) ** 1.7)
         df = 0.006 + 0.006 * rng.random(nf)
         dp = 0.004 + 0.004 * rng.random(npf)
         self.d = np.concatenate([dg, dc, df, dp])
@@ -332,8 +332,9 @@ class Dose:
         dirs = self.axis[None, :] + g1[:, None] * self.u1 + g2[:, None] * self.u2
         dirs /= np.linalg.norm(dirs, axis=1, keepdims=True)
         self.v_exit = dirs * speed[:, None]
-        # landed behaviour: how long a grain stays on the surface before it is covered (screen s)
-        self.life = np.choose(kind, [rng.uniform(0.05, 0.22, n), rng.uniform(0.2, 0.5, n), rng.uniform(0.02, 0.06, n), np.full(n, 99.0)])
+        # landed behaviour: how long a grain stays on the surface before it is covered (screen s); the heap's own surface
+        # grains are drawn by shot_dose (Skin), so these are only the latest arrivals, sliding and rolling a little way
+        self.life = np.choose(kind, [rng.uniform(0.04, 0.15, n), rng.uniform(0.1, 0.3, n), rng.uniform(0.02, 0.06, n), np.full(n, 99.0)])
         self._puff_setup(np.nonzero(kind == PUFF)[0])
         # dynamic state
         self.state = np.zeros(n, np.int8)          # 0 unborn, 1 flying, 2 on a surface, 3 gone
@@ -524,6 +525,85 @@ class Dose:
 
 POS_Q = 0.0005                # cm per int16 step (+-16.4 cm)
 VEL_Q = 0.01                  # cm/s (screen) per int16 step
+
+
+# ------------------------------------------------------------------ the grains on the heap's surface
+def sample_grid(F, x0, dx, x, y):
+    """Bilinear sample of a square grid F[iy, ix] whose first cell centre is at (x0, x0)."""
+    n = F.shape[0]
+    fx, fy = (x - x0) / dx, (y - x0) / dx
+    ix = np.clip(np.floor(fx).astype(np.int64), 0, n - 2)
+    iy = np.clip(np.floor(fy).astype(np.int64), 0, n - 2)
+    wx, wy = np.clip(fx - ix, 0, 1), np.clip(fy - iy, 0, 1)
+    return (F[iy, ix] * (1 - wx) + F[iy, ix + 1] * wx) * (1 - wy) + (F[iy + 1, ix] * (1 - wx) + F[iy + 1, ix + 1] * wx) * wy
+
+
+class Skin:
+    """Where the grains of the heap's visible surface are at any (sub)frame, computed from the height field alone (no
+    history: every motion-blur sub-frame stands on its own, and a reopened .blend gives the same grains).
+
+    A heap fed at its apex grows by surface flows: each layer of fresh grounds runs out and down the flanks and is
+    covered by the next, so the grains seen on a flank move down the slope, never up. Every grain carries a fixed
+    bearing th from the heap's axis `centre` and a fixed height z; at time t it sits where the heap's outer surface
+    along that bearing crosses z (outermost crossing, so a dip never traps it). On a growing cone that contour widens,
+    which moves the grain downhill at (dH/dt) / |grad H|. It is born at the apex when the heap first reaches z, and it
+    is buried once the toe, climbing the basket wall, has risen past it (it sinks into the bed by that much).
+    Density: grains are spread evenly in (th, z), n per radian per cm; a contour band at radius r and slope g holds
+    n dth dz of them over r sqrt(1 + g^2) / g dth dz of surface, so a grain is shown while a fixed random number u is
+    below p = sigma r sqrt(1 + g^2) / (g n). p grows as the cone widens: grains fade in to fill the spreading surface
+    and none ever flickers out."""
+    NT, NR, RMAX = 720, 200, 3.1
+    COVER = 0.004                          # cm of grounds over the steel that count as covered
+
+    def __init__(self, centre, X, B):
+        self.c = np.asarray(centre, float)
+        self.x0, self.dx = float(X[0]), float(X[1] - X[0])
+        self.B = np.asarray(B, float)
+        self.dr = self.RMAX / (self.NR - 1)
+        th = -np.pi + np.arange(self.NT) * (2 * np.pi / self.NT)
+        r = np.arange(self.NR) * self.dr
+        self.PX = self.c[0] + np.cos(th)[:, None] * r[None, :]
+        self.PY = self.c[1] + np.sin(th)[:, None] * r[None, :]
+        self.iters = int(math.ceil(math.log2(self.NR + 1)))
+
+    def sample(self, F, x, y):
+        return sample_grid(F, self.x0, self.dx, x, y)
+
+    def envelope(self, H):
+        """Outer envelope of the covered surface along every bearing: M[k, j] = max of H over radii >= r_j (cm), -1e3
+        where nothing beyond is covered. Non-increasing along j. Cells are masked before sampling, so the steep steel
+        of the wall next to a covered cell never blends into a false rim."""
+        h = self.sample(np.where(H - self.B > self.COVER, H, -1e3), self.PX, self.PY)
+        hc = np.where(h > -5.0, h, -1e3)
+        return np.maximum.accumulate(hc[:, ::-1], axis=1)[:, ::-1]
+
+    def _cross(self, M, k, z):
+        lo, hi = np.zeros(len(z), np.int64), np.full(len(z), self.NR, np.int64)
+        for _ in range(self.iters):                         # count of samples with M >= z (a prefix)
+            act = lo < hi
+            mid = (lo + hi) // 2
+            ok = M[k, np.minimum(mid, self.NR - 1)] >= z
+            lo = np.where(act & ok, mid + 1, lo)
+            hi = np.where(act & ~ok, mid, hi)
+        i = np.clip(lo - 1, 0, self.NR - 1)
+        m0, m1 = M[k, i], M[k, np.minimum(i + 1, self.NR - 1)]
+        inner = (lo > 0) & (lo < self.NR) & (m1 > -500.0)
+        frac = np.where(inner, (m0 - z) / np.maximum(m0 - m1, 1e-9), 0.0)
+        r = (i + np.clip(frac, 0.0, 1.0)) * self.dr
+        depth = np.where(inner | (lo == 0), 0.0, np.maximum(m0 - z, 0.0))
+        return r, depth, (lo > 0).astype(float)
+
+    def place(self, H, th, z):
+        """Grains (bearing th, height z) on the field H: x, y, the radius from the axis, how deep the toe has buried
+        them (cm) and whether the heap has reached them yet (0..1, blended between bearings)."""
+        M = self.envelope(H)
+        f = (th + np.pi) / (2 * np.pi) * self.NT
+        k0 = np.floor(f).astype(np.int64) % self.NT
+        w = f - np.floor(f)
+        r0, d0, b0 = self._cross(M, k0, z)
+        r1, d1, b1 = self._cross(M, (k0 + 1) % self.NT, z)
+        r, depth, born = r0 + (r1 - r0) * w, d0 + (d1 - d0) * w, b0 + (b1 - b0) * w
+        return self.c[0] + r * np.cos(th), self.c[1] + r * np.sin(th), r, depth, born
 
 
 def pack(rec, sim):
