@@ -249,12 +249,13 @@ def _shapes(rng):
     chips = bpy.data.collections.new('dose_chip_shapes')
     clumps = bpy.data.collections.new('dose_clump_shapes')
     every = bpy.data.collections.new('dose_shapes')
-    grain_mat, clump_mat = _grain_material('dose_grain'), _grain_material('dose_clump', value=0.95, sat=0.92)
+    grain_mat, flake_mat = _grain_material('dose_grain', 'chip'), _grain_material('dose_flake', 'flake')
+    clump_mat = _grain_material('dose_clump', 'clump')
     for i in range(N_CHIPS):
         kind = 2 if i in (5, 21) else (1 if i % 8 == 3 else 0)
         bm = bmesh.new()
         _chip(bm, rng, kind)
-        ob = _shape_object(f'dose_shape_c{i:02d}', bm, grain_mat)
+        ob = _shape_object(f'dose_shape_c{i:02d}', bm, flake_mat if kind == 1 else grain_mat)
         chips.objects.link(ob)
         every.objects.link(ob)
     for i in range(N_CLUMPS):
@@ -342,15 +343,19 @@ def _clump(bm, rng):
         bmesh.ops.delete(bm, geom=list(drop), context='VERTS')
 
 
-def _grain_material(name, value=1.0, sat=1.0):
-    """Roasted coffee fracture faces (shared by the chips in flight, on the heap and pressed into the puck).
-    Colour: the bulk of a medium-dark espresso roast measures L* 21-25, hue ~50 deg (UC Davis colour curve, Sci Rep
+def _grain_material(name, kind='chip'):
+    """Roasted coffee fracture faces (shared by the chips in flight, on the heap and pressed into the puck); kind is
+    'chip', 'flake' (the plate-like chip shapes, the only ones that can be chaff) or 'clump'.
+    Loose: the bulk of a medium-dark espresso roast measures L* 21-25, hue ~50 deg (UC Davis colour curve, Sci Rep
     2025), and a grain is lighter than the bed it makes (inter-grain shadow), so the median grain is GROUNDS_ALBEDO,
-    with a log-normal spread of +-25 % from grain to grain; ~10 % are lighter, oranger fresh-interior grains, ~5 %
-    dark oily bean surface (glossier), ~1.5 % cream chaff flakes. Matte (roughness 0.62-0.8, IOR 1.5), a micro-relief
-    of cell pores. Instancer attribute 'tamp' = 1 on the puck: pressed against the polished tamper, the faces are smeared
-    with fines and oils, lighter (compaction raises reflectance) and satin. value/sat: clumps are fines-rich, a little
-    lighter and less saturated."""
+    with a spread of 0.7-1.4x from grain to grain; 8 % are lighter fresh-interior grains (1.5-2x), 5 % dark, slightly
+    oily bean surface (0.5x, roughness 0.5, a warm, weak specular), and 2.4 % of the flakes (0.3 % of all chips) are
+    silverskin chaff, pale but not cream (it is rare and darker in a dark roast). Matte (roughness 0.62-0.8, IOR 1.5),
+    a micro-relief of cell pores. Clumps are agglomerates coated in fines: one shade per lump with a +-14 % spread and
+    a few darker ones, a little lighter (1.08x) and less saturated (0.85x) than the grains - never fresh or chaff.
+    Pressed (instancer attribute 'tamp' = 1 on the puck): the faces are flattened and smeared with fines against the
+    polished tamper, each grain its own shade (log-normal, sigma 0.42, as the photographed mosaic of a tamped puck), 8 %
+    light fresh-fracture flecks (1.6-2.2x), 4 % dark, satin, and each flattened grain tilted its own way."""
     g = M.Graph(name)
     rnd = g.node('ShaderNodeObjectInfo').outputs['Random']
     tamp = g.node('ShaderNodeAttribute', attribute_type='INSTANCER', attribute_name='tamp').outputs['Fac']
@@ -358,30 +363,58 @@ def _grain_material(name, value=1.0, sat=1.0):
     def hashed(seed):
         return g.node('ShaderNodeTexWhiteNoise', {'W': g.math('ADD', rnd, seed)}, noise_dimensions='1D').outputs['Value']
 
-    h1, h2 = hashed(0.371), hashed(1.913)
-    spread = g.ramp(h1, [(0.0, (0.62,) * 3), (0.15, (0.8,) * 3), (0.5, (1.0,) * 3), (0.85, (1.25,) * 3), (1.0, (1.6,) * 3)])
-    base = g.mix_rgb(1.0, M.GROUNDS_ALBEDO, spread, 'MULTIPLY')
-    fresh = g.mix_rgb(g.map_range(h2, 0, 1, 0.0, 0.6), (0.11, 0.05, 0.02), (0.16, 0.075, 0.03))
-    oily = g.mix_rgb(1.0, base, (0.5, 0.48, 0.48), 'MULTIPLY')
-    chaff = (0.26, 0.16, 0.08)
-    cls_fresh = g.math('LESS_THAN', rnd, 0.08)
-    cls_oily = g.math('MULTIPLY', g.math('GREATER_THAN', rnd, 0.08), g.math('LESS_THAN', rnd, 0.13))
-    cls_chaff = g.math('MULTIPLY', g.math('GREATER_THAN', rnd, 0.13), g.math('LESS_THAN', rnd, 0.136))
-    col = g.mix_rgb(cls_fresh, base, fresh)
-    col = g.mix_rgb(cls_oily, col, oily)
-    col = g.mix_rgb(cls_chaff, col, chaff)
-    if value != 1.0 or sat != 1.0:
-        hsv = g.node('ShaderNodeHueSaturation', {'Hue': 0.5, 'Saturation': sat, 'Value': value, 'Color': col})
-        col = hsv.outputs[0]
-    col = g.mix_rgb(tamp, col, g.mix_rgb(1.0, col, M.PRESSED_TINT, 'MULTIPLY'))
+    def band(a, b):
+        return g.math('MULTIPLY', g.math('GREATER_THAN', rnd, a), g.math('LESS_THAN', rnd, b))
+
+    h1, h2, h3 = hashed(0.371), hashed(1.913), hashed(2.657)
+    cls_oily = band(0.08, 0.13) if kind != 'clump' else 0.0
+    if kind == 'clump':
+        spread = g.ramp(h1, [(0.0, (0.86,) * 3), (0.5, (1.0,) * 3), (1.0, (1.14,) * 3)])
+        col = g.mix_rgb(1.0, M.GROUNDS_ALBEDO, spread, 'MULTIPLY')
+        col = g.mix_rgb(g.math('LESS_THAN', rnd, 0.08), col, g.mix_rgb(1.0, col, (0.72, 0.72, 0.72), 'MULTIPLY'))
+        col = g.node('ShaderNodeHueSaturation', {'Hue': 0.5, 'Saturation': 0.85, 'Value': 1.08, 'Color': col}).outputs[0]
+    else:
+        spread = g.ramp(h1, [(0.0, (0.7,) * 3), (0.15, (0.82,) * 3), (0.5, (1.0,) * 3), (0.85, (1.2,) * 3), (1.0, (1.4,) * 3)])
+        base = g.mix_rgb(1.0, M.GROUNDS_ALBEDO, spread, 'MULTIPLY')
+        fresh = g.mix_rgb(h2, (0.1, 0.045, 0.024), (0.13, 0.06, 0.032))
+        col = g.mix_rgb(g.math('LESS_THAN', rnd, 0.08), base, fresh)
+        col = g.mix_rgb(cls_oily, col, g.mix_rgb(1.0, base, (0.5, 0.5, 0.5), 'MULTIPLY'))
+        if kind == 'flake':
+            col = g.mix_rgb(band(0.13, 0.154), col, (0.2, 0.13, 0.07))
+    # pressed into the puck
+    ln = g.ramp(h3, [(0.0, (0.36,) * 3), (0.05, (0.5,) * 3), (0.25, (0.75,) * 3), (0.5, (1.0,) * 3), (0.75, (1.33,) * 3),
+                     (0.95, (1.99,) * 3), (1.0, (2.4,) * 3)])
+    pressed = g.mix_rgb(1.0, g.mix_rgb(1.0, M.GROUNDS_ALBEDO, M.PRESSED_TINT, 'MULTIPLY'), ln, 'MULTIPLY')
+    if kind == 'clump':
+        pressed = g.node('ShaderNodeHueSaturation', {'Hue': 0.5, 'Saturation': 0.85, 'Value': 1.0, 'Color': pressed}).outputs[0]
+    else:
+        fleck = g.mix_rgb(1.0, pressed, g.mix_rgb(h2, (1.6, 1.55, 1.4), (2.3, 2.15, 1.9)), 'MULTIPLY')
+        pressed = g.mix_rgb(g.math('LESS_THAN', rnd, 0.08), pressed, fleck)
+        pressed = g.mix_rgb(band(0.08, 0.12), pressed, g.mix_rgb(1.0, pressed, (0.5, 0.5, 0.5), 'MULTIPLY'))
+        if kind == 'flake':
+            pressed = g.mix_rgb(band(0.13, 0.154), pressed, (0.17, 0.11, 0.06))
+    col = g.mix_rgb(tamp, col, pressed)
     rough = g.map_range(h2, 0, 1, 0.62, 0.8)
-    rough = g.math('SUBTRACT', rough, g.math('MULTIPLY', cls_oily, 0.24))
-    rough = g.math('SUBTRACT', rough, g.math('MULTIPLY', tamp, 0.1))
+    if kind != 'clump':
+        rough = g.node('ShaderNodeMix', {'Factor': cls_oily, 'A': rough, 'B': 0.5}).outputs[0]
+    rough = g.node('ShaderNodeMix', {'Factor': tamp, 'A': rough, 'B': g.map_range(h2, 0, 1, 0.6, 0.75)}).outputs[0]
     pores = g.noise(g.coord('Object'), 7.0, detail=3.0, rough=0.6)
     cells = g.voronoi(g.coord('Object'), 4.0)
     relief = g.math('ADD', pores.outputs['Fac'], g.math('MULTIPLY', cells.outputs['Distance'], 0.6))
-    g.p(Base_Color=col, Roughness=rough, IOR=1.5, Specular_IOR_Level=g.map_range(tamp, 0, 1, 0.32, 0.4), Normal=g.bump(relief, 0.35, 0.05),
-        Sheen_Weight=g.math('MULTIPLY', tamp, 0.08), Sheen_Roughness=0.35, Sheen_Tint=(0.85, 0.66, 0.5))
+    # a flattened grain lies at its own angle: its normal tipped up to ~14 degrees (on top of the instance's tilt)
+    tip = g.node('ShaderNodeCombineXYZ', {'X': g.math('MULTIPLY', g.math('SUBTRACT', hashed(3.31), 0.5), 0.5),
+                                          'Y': g.math('MULTIPLY', g.math('SUBTRACT', hashed(4.77), 0.5), 0.5)}).outputs[0]
+    geo_n = g.node('ShaderNodeNewGeometry').outputs['Normal']
+    tipped = g.node('ShaderNodeVectorMath', {0: geo_n, 1: g.node('ShaderNodeVectorMath', {0: tip, 'Scale': tamp}, operation='SCALE').outputs[0]},
+                    operation='ADD').outputs[0]
+    tipped = g.node('ShaderNodeVectorMath', {0: tipped}, operation='NORMALIZE').outputs[0]
+    spec_tint = g.mix_rgb(cls_oily, (1.0, 1.0, 1.0), (0.9, 0.72, 0.52))
+    spec = g.map_range(tamp, 0, 1, 0.32, 0.26)
+    if kind != 'clump':
+        spec = g.math('SUBTRACT', spec, g.math('MULTIPLY', cls_oily, 0.08))
+    g.p(Base_Color=col, Roughness=rough, IOR=1.5, Specular_IOR_Level=spec, Specular_Tint=spec_tint,
+        Normal=g.bump(relief, 0.35, 0.05, normal=tipped),
+        Sheen_Weight=g.math('MULTIPLY', tamp, 0.04), Sheen_Roughness=0.35, Sheen_Tint=(0.85, 0.66, 0.5))
     return g.mat
 
 # ------------------------------------------------------------------ the grains of the heap and of the puck
@@ -454,7 +487,9 @@ def _grain_population(rng):
     d = np.clip(0.026 * np.exp(0.35 * rng.standard_normal(n)), 0.012, 0.06)
     R = np.where(loose[:, None, None], _random_rotations(rng, n), _lying(rng, n, 0.28))
     flat = np.where(loose, 0.85, rng.uniform(0.55, 0.75, n))
-    e = np.where(loose, rng.uniform(0.0, 0.006, n), rng.uniform(0.0005, 0.004, n))
+    # height of the grain's centre over the pressed surface: pressed grains lie half sunk in it, their tops 20-60 um
+    # proud (the seams between them stay in shadow); the loose ones at the edge sit on it
+    e = np.where(loose, rng.uniform(0.0, 0.006, n) - 0.55 * flat * 0.5 * d, rng.uniform(-0.0005, 0.0025, n) - 0.15 * flat * 0.5 * d)
     parts = [dict(x=x, y=y, d=d, shape=rng.integers(0, N_CHIPS, n), R=R, flat=flat, e=e, kind=np.zeros(n, np.int8), tamp=np.where(loose, 0.5, 1.0))]
     n = 300                                            # crumbs that survive at the edge, in the gap the base never reached
     rr, th = rng.uniform(PUCK_RING + 0.04, PUCK_R - 0.015, n), rng.uniform(-np.pi, np.pi, n)
@@ -579,10 +614,10 @@ def _grain_layers(scene, pl, cfg, data):
     px, py, pd, kind = pop['puck_x'], pop['puck_y'], pop['puck_d'], pop['puck_kind']
     hs = sample(Hend, px, py)
     half = 0.5 * pd
-    pz = np.where(kind == 0, hs + pop['puck_e'] - 0.55 * pop['puck_flat'] * half,
-                  np.where(kind == 1, hs + pop['puck_e'], pop['puck_e']))
+    pz = np.where(kind == 2, pop['puck_e'], hs + pop['puck_e'])
     ppos = np.stack([px, py, pz], -1)
-    pscale = np.stack([half * 1.2, half * 1.2, half * pop['puck_flat']], -1)
+    spread = 1.3 / np.sqrt(pop['puck_flat'])          # a grain pressed thinner spreads wider (volume kept)
+    pscale = np.stack([half * spread, half * spread, half * pop['puck_flat']], -1)
     pscale[kind != 0] = half[kind != 0, None] * np.array([1.0, 1.0, 1.0])
     pscale[kind == 1, 2] *= pop['puck_flat'][kind == 1]
     pxf = _xf(pop['puck_R'], pscale, ppos)

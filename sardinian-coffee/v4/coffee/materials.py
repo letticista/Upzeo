@@ -289,8 +289,13 @@ def bean_inner():
     return g.mat
 
 
-GROUNDS_ALBEDO = (0.066, 0.0208, 0.0072)    # linear: median coffee grain (fracture faces), shot_dose's grain shader
-PRESSED_TINT = (1.12, 1.02, 0.88)            # a pressed surface reflects more and keeps the hue: lighter, a touch oranger
+GROUNDS_ALBEDO = (0.066, 0.0255, 0.0125)   # linear: median coffee grain (fracture faces), shot_dose's grain shader
+# Pressed grains, relative to loose ones. Compaction raises the reflectance a little (Pietsch, ASIC 2025) and a tamped
+# puck photographs ~1.6x lighter than the loose mound in sRGB (same light, same hue), but in this shot the flat puck
+# faces the key while the heap shades itself, which already makes it ~2-3x brighter: the tint is calibrated on the
+# frame-238 crop so the puck lands at L* ~35 against the heap's ~24, keeping the hue.
+PRESSED_TINT = (0.48, 0.415, 0.35)
+PRESSED_BED = 0.45                            # the bed under the pressed grains only shows in the gaps between them
 
 
 def grounds():
@@ -321,16 +326,20 @@ def grounds():
     # loose: the gaps between grit grains fall into shadow; pressed: flat grains, pores between some of them
     loose_k = g.math('MULTIPLY', g.math('MULTIPLY', g.map_range(loose_h, 0.1, 0.85, 0.2, 1.2),
                                         g.map_range(c1.outputs['Color'], 0.0, 1.0, 0.6, 1.45)), 0.62)
-    pressed_k = g.math('MULTIPLY', g.math('MULTIPLY', g.map_range(pore, 0.0, 1.0, 0.25, 1.0),
-                                          g.map_range(pc.outputs['Color'], 0.0, 1.0, 0.45, 1.6)), 0.6)
+    # pressed: what shows between the puck's flattened grains is fines packed into 20-100 um gaps, in their shadow:
+    # dark (0.1-0.2x a grain) along the seams and in the pores, and the grains below them, each its own shade
+    seam = g.map_range(edge.outputs['Distance'], 0.0, 0.12, 0.3, 1.0)
+    cell = g.ramp(g.node('ShaderNodeTexWhiteNoise', {'Vector': pc.outputs['Position']}, noise_dimensions='3D').outputs['Value'],
+                  [(0.0, (0.45,) * 3), (0.1, (0.64,) * 3), (0.5, (1.0,) * 3), (0.9, (1.57,) * 3), (1.0, (2.0,) * 3)])
+    pressed_k = g.math('MULTIPLY', g.math('MULTIPLY', g.math('MULTIPLY', g.map_range(pore, 0.0, 1.0, 0.3, 1.0), seam), cell), PRESSED_BED)
     k = g.node('ShaderNodeMix', {'Factor': tamp, 'A': loose_k, 'B': pressed_k}).outputs[0]
     k = g.math('MULTIPLY', g.math('MULTIPLY', k, g.map_range(c2.outputs['Color'], 0.0, 1.0, 0.8, 1.2)),
                g.map_range(mottle.outputs['Fac'], 0.3, 0.7, 0.85, 1.15))
     col = g.mix_rgb(1.0, GROUNDS_ALBEDO, g.node('ShaderNodeCombineXYZ', {'X': k, 'Y': k, 'Z': k}).outputs[0], 'MULTIPLY')
     col = g.mix_rgb(tamp, col, g.mix_rgb(1.0, col, PRESSED_TINT, 'MULTIPLY'))
-    g.p(Base_Color=col, Roughness=g.map_range(tamp, 0, 1, 0.95, 0.72), Specular_IOR_Level=0.3, Sheen_Weight=g.math('MULTIPLY', tamp, 0.08),
-        Sheen_Roughness=0.35, Sheen_Tint=(0.85, 0.66, 0.5))
-    disp = g.node('ShaderNodeDisplacement', {'Height': height, 'Midlevel': 0.5, 'Scale': g.map_range(tamp, 0, 1, 0.02, 0.004)})
+    # matte: the fines in the gaps are shaded by the grains around them, so they do not mirror the room
+    g.p(Base_Color=col, Roughness=g.map_range(tamp, 0, 1, 0.95, 0.9), Specular_IOR_Level=g.map_range(tamp, 0, 1, 0.3, 0.12))
+    disp = g.node('ShaderNodeDisplacement', {'Height': height, 'Midlevel': 0.5, 'Scale': g.map_range(tamp, 0, 1, 0.02, 0.002)})
     g.link(disp.outputs[0], g.out.inputs['Displacement'])
     g.mat.displacement_method = 'BOTH'
     return g.mat
