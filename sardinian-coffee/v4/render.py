@@ -6,7 +6,8 @@
     blender -b v4/coffee.blend -P v4/render.py -- --bench             times 3 frames at full quality and estimates the total
     blender -b v4/coffee.blend -P v4/render.py -- --scale 0.5 --samples 32 --out v4/frames_draft   a quick draft of the whole film
 
-Frames already on disk are skipped, so an interrupted render can simply be started again.
+Frames already on disk are skipped, so an interrupted render can simply be started again; frames older than
+coffee.blend (left over from an earlier build) are rendered again.
 """
 import argparse
 import importlib
@@ -59,7 +60,9 @@ def main():
     want = frames_wanted()
     out_dir = Path(args.out) if args.out else (C.PREVIEW if (args.still or args.bench) else C.FRAMES)
     out_dir.mkdir(parents=True, exist_ok=True)
+    built = os.path.getmtime(bpy.data.filepath)
     times = []
+    skipped = 0
     for name in order:
         sc = bpy.data.scenes[name]
         mine = [f for f in want if sc.frame_start <= f <= sc.frame_end]
@@ -75,7 +78,8 @@ def main():
             sc.cycles.device = 'CPU'
         for f in mine:
             path = out_dir / f'f_{f:05d}.png'
-            if path.exists() and not (args.still or args.bench):
+            if path.exists() and path.stat().st_mtime > built and not (args.still or args.bench):
+                skipped += 1
                 continue
             t = time.time()
             sc.frame_set(f)
@@ -86,6 +90,8 @@ def main():
             times.append(dt)
             done = len(times)
             print(f'[render] {name} frame {f} in {dt:.1f}s ({done}/{len(want)})', flush=True)
+    if skipped:
+        print(f'[render] {skipped} frames already rendered from this build, skipped', flush=True)
     if args.bench and times:
         per = sum(times) / len(times)
         total = per * (C.frame_of(C.DUR) - 1)
