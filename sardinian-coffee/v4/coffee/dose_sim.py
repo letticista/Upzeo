@@ -82,14 +82,12 @@ class Bed:
         self.B = np.where(self.act, basket_z(self.R), 5.0)
         self.H = self.B.copy()
         self.rng = np.random.default_rng(seed)
-        # repose varies with the local fines content: broad gentle lobes, fine clumpy detail, and radial streaks around
-        # the impact (each small avalanche leaves a channel)
-        th = np.arctan2(self.Y - 0.2, self.X - 0.15)
+        # repose varies with the local fines content: broad gentle lobes, fine clumpy detail, and away from the impact
+        # the irregular tongues that small avalanches leave (low-frequency patches, not radial channels: a cohesive powder
+        # fails in lobes, and a regular set of streaks reads as combed)
         rr = np.hypot(self.Y - 0.2, self.X - 0.15)
-        m = self.rng.integers(12, 70, 24)
-        streak = sum(np.sin(k * th + self.rng.uniform(0, 6.28) + self.rng.normal(0, 1.5) * rr) for k in m) / math.sqrt(len(m) / 2)
         self.tan_r = np.tan(np.radians(REPOSE[0] + REPOSE[1] * blur_noise(self.rng, n, 10) + 0.6 * blur_noise(self.rng, n, 2)
-                                       + 0.4 * streak * np.clip(rr / 0.6, 0, 1)))
+                                       + 1.1 * blur_noise(self.rng, n, 4) * np.clip(rr / 0.6, 0, 1)))
         self.lost = 0.0                                      # volume removed by compaction
         self.dv, self.dxy, self.impact = 0.0, np.zeros(2), None
         self.mobile = np.zeros_like(self.H)
@@ -332,15 +330,28 @@ class Dose:
         dirs = self.axis[None, :] + g1[:, None] * self.u1 + g2[:, None] * self.u2
         dirs /= np.linalg.norm(dirs, axis=1, keepdims=True)
         self.v_exit = dirs * speed[:, None]
-        # landed behaviour: how long a grain stays on the surface before it is covered (screen s); the heap's own surface
-        # grains are drawn by shot_dose (Skin), so these are only the latest arrivals, sliding and rolling a little way
-        self.life = np.choose(kind, [rng.uniform(0.04, 0.15, n), rng.uniform(0.1, 0.3, n), rng.uniform(0.02, 0.06, n), np.full(n, 99.0)])
+        # landed behaviour (the heap's own surface grains are drawn by shot_dose, Skin; these are the latest arrivals):
+        # a grain slides and a clump rolls down the heap a random way (grains stop sooner, clumps run on towards the toe
+        # and the wall), each with its own friction and veering off the line of steepest descent, so no two follow the
+        # same path; once at rest it stays where it is until the grounds arriving after it bury it (or the tamper
+        # crushes it). Fines are covered by the dust that keeps settling: they fade after a short while.
+        run = rng.random(n)
+        self.travel = np.choose(kind, [np.where(run < 0.7, rng.exponential(0.3, n), 0.5 + rng.exponential(1.2, n)),
+                                       np.where(run < 0.35, rng.uniform(0.05, 0.4, n), 0.8 + rng.exponential(1.5, n)),
+                                       np.zeros(n), np.zeros(n)])
+        self.travel = np.minimum(self.travel, 4.5)
+        self.mu = MU_K[kind] * rng.uniform(0.85, 1.3, n)
+        self.veer = rng.normal(0.0, 0.45, n)                # radians off the fall line
+        self.veer_ph = rng.uniform(0, 2 * np.pi, n)
+        self.life = np.choose(kind, [np.full(n, 99.0), np.full(n, 99.0), rng.uniform(0.02, 0.06, n), np.full(n, 99.0)])
         self._puff_setup(np.nonzero(kind == PUFF)[0])
         # dynamic state
         self.state = np.zeros(n, np.int8)          # 0 unborn, 1 flying, 2 on a surface, 3 gone
         self.pos = self.p_exit.copy()
         self.vel = self.v_exit.copy()
         self.roll = np.zeros(n)                    # speed down the slope of the heap (real cm/s)
+        self.ran = np.zeros(n)                     # distance run since landing (cm)
+        self.rest = np.zeros(n, bool)              # came to rest on the heap
         self.t_land = np.full(n, np.inf)
         self.stick = np.zeros(n, bool)             # stays (spilled on the rim, fines on the puck)
         self.fade = np.ones(n)
@@ -462,32 +473,52 @@ class Dose:
         bed = self.bed
         p, k = self.pos[on], self.kind[on]
         st = self.stick[on]
-        mv = ~st
         old = p.copy()
-        if mv.any():
-            i = on[mv]
-            x, y = p[mv, 0], p[mv, 1]
+        heavy = k <= CLUMP
+        go = ~st & ~self.rest[on]                                  # still running down the heap
+        if go.any():
+            i = on[go]
+            x, y = p[go, 0], p[go, 1]
             gx, gy = bed.gradient(x, y)
             sl = np.hypot(gx, gy) + 1e-9
             cos = 1 / np.sqrt(1 + sl * sl)
-            a = G * (sl * cos - MU_K[k[mv]] * cos)
+            a = G * (sl * cos - self.mu[i] * cos)
             u = np.maximum(self.roll[i] + a * dt, 0.0)
             self.roll[i] = u
-            x = x - u * cos * gx / sl * dt
-            y = y - u * cos * gy / sl * dt
+            # down the fall line, veering off it by the particle's own angle and wandering as it goes
+            ang = self.veer[i] + 0.5 * np.sin(self.ran[i] / 0.12 + self.veer_ph[i])
+            ca, sa = np.cos(ang), np.sin(ang)
+            ux, uy = -gx / sl, -gy / sl
+            x = x + u * cos * (ca * ux - sa * uy) * dt
+            y = y + u * cos * (sa * ux + ca * uy) * dt
             rr = np.hypot(x, y)
             rmax = wall_r(bed.sample(x, y)) - self.d[i] * 0.5
             s = np.minimum(1.0, rmax / np.maximum(rr, 1e-9))
             x, y = x * s, y * s
-            p[mv, 0], p[mv, 1] = x, y
-            p[mv, 2] = bed.sample(x, y) + self.d[i] * 0.3
+            self.ran[i] += u * dt
+            p[go, 0], p[go, 1] = x, y
+            p[go, 2] = bed.sample(x, y) + self.d[i] * 0.3
+            stop = (self.kind[i] <= CLUMP) & ((u <= 0.0) | (self.ran[i] >= self.travel[i]))
+            self.rest[i[stop]] = True
+        # at rest: it sinks with the surface under it (an avalanche, the tamper) but stays put while new grounds rise
+        # around it, and is gone once they have buried it
+        lie = ~st & self.rest[on]
+        depth = np.zeros(len(on))
+        if lie.any():
+            i = on[lie]
+            zs = bed.sample(p[lie, 0], p[lie, 1]) + self.d[i] * 0.3
+            p[lie, 2] = np.minimum(p[lie, 2], zs)
+            depth[lie] = zs - p[lie, 2]
         self.pos[on] = p
         self.vel[on] = (p - old) / dt
-        # covered by the grounds that keep arriving (or by the tamper face coming down)
+        d = self.d[on]
+        f = 1.0 - smoothstep(0.4 * d, 0.9 * d, depth)
         age = t - self.t_land[on]
-        f = 1.0 - np.clip((age - self.life[on]) / 0.06, 0.0, 1.0)
+        f = np.where(heavy, f, 1.0 - np.clip((age - self.life[on]) / 0.06, 0.0, 1.0))
         f = np.where(st, 1.0, f)
-        f = np.where((zb - p[:, 2] < 0.35) & ~st, np.minimum(f, 0.0), f)
+        # the pressed puck takes over from everything on the bed (shot_dose swaps its grain layers at the same moment)
+        if t >= self.c['times']['swap']:
+            f = np.where(st, f, 0.0)
         self.fade[on] = f
         self.state[on[f <= 0.0]] = 3
 
@@ -548,12 +579,14 @@ class Skin:
     along that bearing crosses z (outermost crossing, so a dip never traps it). On a growing cone that contour widens,
     which moves the grain downhill at (dH/dt) / |grad H|. It is born at the apex when the heap first reaches z, and it
     is buried once the toe, climbing the basket wall, has risen past it (it sinks into the bed by that much).
-    Density: grains are spread evenly in (th, z), n per radian per cm; a contour band at radius r and slope g holds
-    n dth dz of them over r sqrt(1 + g^2) / g dth dz of surface, so a grain is shown while a fixed random number u is
-    below p = sigma r sqrt(1 + g^2) / (g n). p grows as the cone widens: grains fade in to fill the spreading surface
-    and none ever flickers out."""
+    Density: grains are spread evenly in (th, z), n per radian per cm; the surface swept by the crossing r(th, z) has
+    an area element A dth dz with A = sqrt(r^2 (1 + r_z^2) + r_th^2) (r sqrt(1 + g^2) / g on a round cone of slope g;
+    wherever an avalanche lobe bends the contours, r_th adds the stretch), so a grain is shown while a fixed random
+    number u is below p = sigma A / n (`stretch`). p grows as the cone widens: grains fade in to fill the spreading
+    surface and none ever flickers out."""
     NT, NR, RMAX = 720, 200, 3.1
     COVER = 0.004                          # cm of grounds over the steel that count as covered
+    DZ = 0.02                              # cm: step for the contours' spacing
 
     def __init__(self, centre, X, B):
         self.c = np.asarray(centre, float)
@@ -593,17 +626,28 @@ class Skin:
         depth = np.where(inner | (lo == 0), 0.0, np.maximum(m0 - z, 0.0))
         return r, depth, (lo > 0).astype(float)
 
-    def place(self, H, th, z):
+    def place(self, H, th, z, stretch=False):
         """Grains (bearing th, height z) on the field H: x, y, the radius from the axis, how deep the toe has buried
-        them (cm) and whether the heap has reached them yet (0..1, blended between bearings)."""
+        them (cm) and whether the heap has reached them yet (0..1, blended between bearings); with stretch=True also
+        the area of heap surface per unit (bearing, height) at each crossing, sqrt(r^2 (1 + r_z^2) + r_th^2), from
+        finite differences of the crossings between neighbouring bearings and heights (r_z and r_th / r capped at 4,
+        where the surface turns flat)."""
         M = self.envelope(H)
         f = (th + np.pi) / (2 * np.pi) * self.NT
         k0 = np.floor(f).astype(np.int64) % self.NT
+        k1 = (k0 + 1) % self.NT
         w = f - np.floor(f)
         r0, d0, b0 = self._cross(M, k0, z)
-        r1, d1, b1 = self._cross(M, (k0 + 1) % self.NT, z)
+        r1, d1, b1 = self._cross(M, k1, z)
         r, depth, born = r0 + (r1 - r0) * w, d0 + (d1 - d0) * w, b0 + (b1 - b0) * w
-        return self.c[0] + r * np.cos(th), self.c[1] + r * np.sin(th), r, depth, born
+        out = (self.c[0] + r * np.cos(th), self.c[1] + r * np.sin(th), r, depth, born)
+        if not stretch:
+            return out
+        u0, u1 = self._cross(M, k0, z + self.DZ)[0], self._cross(M, k1, z + self.DZ)[0]
+        r_z = np.clip((u0 + (u1 - u0) * w - r) / self.DZ, -4.0, 4.0)
+        lim = 4.0 * np.maximum(r, 0.05)
+        r_th = np.clip((r1 - r0) / (2 * np.pi / self.NT), -lim, lim)
+        return out + (np.sqrt(r * r * (1 + r_z * r_z) + r_th * r_th),)
 
 
 def pack(rec, sim):
@@ -663,4 +707,4 @@ def schedule(T, fps, seed=7):
                 flow_peak=float(flow(ts).max()), flow_end=off + 0.06, clump_weight=clump_weight, wander=wander, tamper=tamper,
                 t0=on - 0.02, frames=(int(round(T['dose'] * fps)), int(round(T['extract'] * fps)) + 1),
                 n=(60000, 5000, 6000, 6000), puff_window=(down + 0.19, tamp + 0.005), seed=seed,
-                times=dict(on=on, taper=taper, off=off, down=down, tamp=tamp, lift=lift, end=end))
+                times=dict(on=on, taper=taper, off=off, down=down, tamp=tamp, lift=lift, end=end, swap=tamp - 0.4 / fps))

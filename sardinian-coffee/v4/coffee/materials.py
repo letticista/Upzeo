@@ -289,13 +289,13 @@ def bean_inner():
     return g.mat
 
 
-GROUNDS_ALBEDO = (0.066, 0.0255, 0.0125)   # linear: median coffee grain (fracture faces), shot_dose's grain shader
+GROUNDS_ALBEDO = (0.066, 0.0254, 0.0138)   # linear: median coffee grain (fracture faces, CIELAB L* 21, C 18, hue 50)
 # Pressed grains, relative to loose ones. Compaction raises the reflectance a little (Pietsch, ASIC 2025) and a tamped
 # puck photographs ~1.6x lighter than the loose mound in sRGB (same light, same hue), but in this shot the flat puck
 # faces the key while the heap shades itself, which already makes it ~2-3x brighter: the tint is calibrated on the
 # frame-238 crop so the puck lands at L* ~35 against the heap's ~24, keeping the hue.
-PRESSED_TINT = (0.48, 0.415, 0.35)
-PRESSED_BED = 0.45                            # the bed under the pressed grains only shows in the gaps between them
+PRESSED_TINT = (0.47, 0.35, 0.245)
+PRESSED_BED = 0.3                            # the bed under the pressed grains only shows in the gaps between them
 
 
 def grounds():
@@ -303,8 +303,8 @@ def grounds():
     shot_dose): what shows between them is grit and the velvet of fines that coats and fills the gaps. Procedural at real
     scale on UV = (x, y) in cm, so the texture rides the rising bed: 0.16 mm grit domes over 70 um grit and 40 um cell
     fragments, each its own shade, deep and dark between them; true micro-displacement. 'tamped' (0..1, a mesh
-    attribute): pressed flat by the polished tamper base into a mosaic of flattened grains with fine dark pores here and
-    there along their boundaries, a little lighter overall (compaction raises reflectance) and satin."""
+    attribute): pressed flat by the polished tamper base; the puck's flattened grains are instanced over it (shot_dose),
+    so this is what shows in the seams between them: fines packed into 20-100 um gaps, dark, with pores, matte."""
     g = Graph('grounds')
     p = g.coord('UV')
     tamp = g.attr('tamped', 'Fac')

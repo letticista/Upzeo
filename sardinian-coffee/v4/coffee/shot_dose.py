@@ -22,7 +22,9 @@ Physics (numpy, coffee/dose_sim.py, 16 sub-steps per frame, all forces in real s
   0.33 g/cm^3 (18 g -> 54.5 cm^3) and coats the heap as a cone at the local angle of repose (45 +- 2.5 degrees:
   fine, slightly cohesive grounds), clipped by the old surface and the basket wall - the fast-avalanche limit of a
   sandpile, since surface flows (0.2-0.5 m/s) outrun the heap's growth. Volume is conserved exactly (apex by bisection).
-  Landed grains slide (mu 0.72) and clumps roll (mu 0.45) down the slopes until new grounds cover them.
+  Landed grains slide (mu 0.72) and clumps roll (mu 0.45) down the slopes, each its own way and distance (clumps run
+  further, to the toe and the wall), and lie where they stop until the grounds landing after them bury them; the tamper
+  face presses the last ones flat.
 - tamp: the tamper face is a ceiling for the field; material above it is plowed sideways into free space under the
   face (a mobile layer diffusing cell to cell) and compacted once there is none. The puck ends flat at z = -0.62
   (0.86 cm below the rim), 42.5 cm^3: 0.42 g/cm^3, the measured density of a dry espresso puck (packing fraction 0.65
@@ -31,14 +33,16 @@ Physics (numpy, coffee/dose_sim.py, 16 sub-steps per frame, all forces in real s
   ~0.6 m/s, decaying in 15 ms; fines relax to the air in 4 ms and settle at 4 cm/s).
 Grains, not powder (at 1080x1920 a pixel is ~0.045 mm here: a 0.25 mm grain is ~6 px, a 1.5 mm clump ~35 px):
 - the heap's surface is real-size instanced geometry over the height field: ~2600 angular fracture chips per cm^2
-  (0.09-0.7 mm, median 0.24 mm) and ~100 fluffy clumps per cm^2 (0.5-2.2 mm, N(>D) ~ D^-2.2), half embedded, so the
+  (0.09-0.7 mm, median 0.24 mm) and ~110 fluffy clumps per cm^2 (0.5-2.2 mm, N(>D) ~ D^-2.2; twice as many on the
+  upper slopes, where the stream drops them), half embedded, so the
   crumb relief and the shadows between grains make the texture (dose_sim.Skin explains where each grain is at any
   sub-frame: grains run down the flanks as the heap grows and are buried at the toe, never sliding up);
 - the bed mesh under them shades as the dark velvet of fines and grit in the gaps (materials.grounds, procedural at
   real scale), the same chips and clumps fall in the stream and land on the heap;
 - the tamper crushes the grains under its face; while the base covers the basket a pressed puck takes over: flattened
-  grains on a jittered grid (~1370 per cm^2) over a mosaic of pressed grains with fine dark pores, lighter and satin,
-  a looser ring of grains and crumbs in the gap at the wall, grains left on the steel above it as the base slides past.
+  grains on a jittered grid (~1600 per cm^2) overlapping into a mosaic, each tilted and shaded its own way, with light
+  fresh-fracture flecks and a faint mm-scale mottling, dark seams of packed fines between them, a looser ring of grains
+  and crumbs in the gap at the wall, grains left on the steel above it as the base slides past.
 Sources: Illy & Viani, Espresso Coffee (2005) for bean and grounds densities; Schiller & Naumann (1933) drag;
 Corrochano et al. (2015) for dry espresso bed density; Ceado E37/E6 series data for throughput; Kaffeemacher (2025,
 Camsizer X2) and Uman et al. (2016) for the grind's size distribution; Harper & Hendon (2023) for static clumping;
@@ -84,7 +88,7 @@ def build(scene):
           f'({DS.DOSE / sim.bed.volume():.3f} g/cm^3), compacted {sim.bed.lost:.1f} cm^3, spilled {sim.spilled:.3f} g', flush=True)
     mats = {'grain': shapes['grain'], 'clump': shapes['clump'], 'fines': _fines_material()}
     for name, kinds, kind, mat in _CLOUDS:
-        _points(col, name, int(np.isin(sim.kind, kinds).sum()), shapes[kind], mats[mat])
+        _points(col, name, int(np.isin(sim.kind, kinds).sum()), shapes[kind], mats[mat], squash=DS.FINE not in kinds)
     pop = _grain_population(np.random.default_rng(SKIN_SEED))
     np.savez_compressed(C.CACHE / SKIN_FILE, **pop)
     for name, n in _layer_sizes(pop).items():
@@ -343,6 +347,9 @@ def _clump(bm, rng):
         bmesh.ops.delete(bm, geom=list(drop), context='VERTS')
 
 
+CLUMP_TINT = (0.989, 1.139, 1.288)   # x GROUNDS_ALBEDO: luminance x 1.08, chroma x 0.85 at the same CIELAB hue
+
+
 def _grain_material(name, kind='chip'):
     """Roasted coffee fracture faces (shared by the chips in flight, on the heap and pressed into the puck); kind is
     'chip', 'flake' (the plate-like chip shapes, the only ones that can be chaff) or 'clump'.
@@ -352,10 +359,12 @@ def _grain_material(name, kind='chip'):
     oily bean surface (0.5x, roughness 0.5, a warm, weak specular), and 2.4 % of the flakes (0.3 % of all chips) are
     silverskin chaff, pale but not cream (it is rare and darker in a dark roast). Matte (roughness 0.62-0.8, IOR 1.5),
     a micro-relief of cell pores. Clumps are agglomerates coated in fines: one shade per lump with a +-14 % spread and
-    a few darker ones, a little lighter (1.08x) and less saturated (0.85x) than the grains - never fresh or chaff.
+    a few darker ones, a little lighter (1.08x) and less saturated (0.85x, same hue) than the grains, matte (rough
+    0.82-0.92, weak specular) - never fresh or chaff.
     Pressed (instancer attribute 'tamp' = 1 on the puck): the faces are flattened and smeared with fines against the
-    polished tamper, each grain its own shade (log-normal, sigma 0.42, as the photographed mosaic of a tamped puck), 8 %
-    light fresh-fracture flecks (1.6-2.2x), 4 % dark, satin, and each flattened grain tilted its own way."""
+    polished tamper, each grain its own shade (log-normal, sigma ~0.48, as the photographed mosaic of a tamped puck) under
+    a faint 1-5 mm mottling, 11 % light fresh-fracture flecks (1.8-2.6x), 5 % dark (0.42x), the chaff flakes cream, a
+    weak satin specular, and each flattened grain tilted its own way (normal tipped up to ~19 degrees)."""
     g = M.Graph(name)
     rnd = g.node('ShaderNodeObjectInfo').outputs['Random']
     tamp = g.node('ShaderNodeAttribute', attribute_type='INSTANCER', attribute_name='tamp').outputs['Fac']
@@ -372,7 +381,7 @@ def _grain_material(name, kind='chip'):
         spread = g.ramp(h1, [(0.0, (0.86,) * 3), (0.5, (1.0,) * 3), (1.0, (1.14,) * 3)])
         col = g.mix_rgb(1.0, M.GROUNDS_ALBEDO, spread, 'MULTIPLY')
         col = g.mix_rgb(g.math('LESS_THAN', rnd, 0.08), col, g.mix_rgb(1.0, col, (0.72, 0.72, 0.72), 'MULTIPLY'))
-        col = g.node('ShaderNodeHueSaturation', {'Hue': 0.5, 'Saturation': 0.85, 'Value': 1.08, 'Color': col}).outputs[0]
+        col = g.mix_rgb(1.0, col, CLUMP_TINT, 'MULTIPLY')
     else:
         spread = g.ramp(h1, [(0.0, (0.7,) * 3), (0.15, (0.82,) * 3), (0.5, (1.0,) * 3), (0.85, (1.2,) * 3), (1.0, (1.4,) * 3)])
         base = g.mix_rgb(1.0, M.GROUNDS_ALBEDO, spread, 'MULTIPLY')
@@ -382,35 +391,41 @@ def _grain_material(name, kind='chip'):
         if kind == 'flake':
             col = g.mix_rgb(band(0.13, 0.154), col, (0.2, 0.13, 0.07))
     # pressed into the puck
-    ln = g.ramp(h3, [(0.0, (0.36,) * 3), (0.05, (0.5,) * 3), (0.25, (0.75,) * 3), (0.5, (1.0,) * 3), (0.75, (1.33,) * 3),
-                     (0.95, (1.99,) * 3), (1.0, (2.4,) * 3)])
+    ln = g.ramp(h3, [(0.0, (0.3,) * 3), (0.05, (0.45,) * 3), (0.25, (0.72,) * 3), (0.5, (1.0,) * 3), (0.75, (1.38,) * 3),
+                     (0.95, (2.2,) * 3), (1.0, (2.7,) * 3)])
+    # faint 1-5 mm mottling of the pressed surface (denser and looser patches), the same across neighbouring grains
+    mottle = g.map_range(g.noise(g.node('ShaderNodeNewGeometry').outputs['Position'], 2.2, detail=3.0, rough=0.7).outputs['Fac'],
+                         0.38, 0.62, 0.68, 1.32)
+    ln = g.mix_rgb(1.0, ln, g.node('ShaderNodeCombineXYZ', {'X': mottle, 'Y': mottle, 'Z': mottle}).outputs[0], 'MULTIPLY')
     pressed = g.mix_rgb(1.0, g.mix_rgb(1.0, M.GROUNDS_ALBEDO, M.PRESSED_TINT, 'MULTIPLY'), ln, 'MULTIPLY')
     if kind == 'clump':
-        pressed = g.node('ShaderNodeHueSaturation', {'Hue': 0.5, 'Saturation': 0.85, 'Value': 1.0, 'Color': pressed}).outputs[0]
+        pressed = g.mix_rgb(1.0, pressed, CLUMP_TINT, 'MULTIPLY')
     else:
-        fleck = g.mix_rgb(1.0, pressed, g.mix_rgb(h2, (1.6, 1.55, 1.4), (2.3, 2.15, 1.9)), 'MULTIPLY')
-        pressed = g.mix_rgb(g.math('LESS_THAN', rnd, 0.08), pressed, fleck)
-        pressed = g.mix_rgb(band(0.08, 0.12), pressed, g.mix_rgb(1.0, pressed, (0.5, 0.5, 0.5), 'MULTIPLY'))
+        fleck = g.mix_rgb(1.0, pressed, g.mix_rgb(h2, (1.8, 1.7, 1.5), (2.6, 2.4, 2.1)), 'MULTIPLY')
+        pressed = g.mix_rgb(g.math('MAXIMUM', g.math('LESS_THAN', rnd, 0.08), band(0.154, 0.184)), pressed, fleck)
+        pressed = g.mix_rgb(cls_oily, pressed, g.mix_rgb(1.0, pressed, (0.42, 0.42, 0.42), 'MULTIPLY'))
         if kind == 'flake':
-            pressed = g.mix_rgb(band(0.13, 0.154), pressed, (0.17, 0.11, 0.06))
+            pressed = g.mix_rgb(band(0.13, 0.154), pressed, (0.1, 0.064, 0.034))
     col = g.mix_rgb(tamp, col, pressed)
-    rough = g.map_range(h2, 0, 1, 0.62, 0.8)
+    rough = g.map_range(h2, 0, 1, 0.82, 0.92) if kind == 'clump' else g.map_range(h2, 0, 1, 0.62, 0.8)
     if kind != 'clump':
         rough = g.node('ShaderNodeMix', {'Factor': cls_oily, 'A': rough, 'B': 0.5}).outputs[0]
     rough = g.node('ShaderNodeMix', {'Factor': tamp, 'A': rough, 'B': g.map_range(h2, 0, 1, 0.6, 0.75)}).outputs[0]
     pores = g.noise(g.coord('Object'), 7.0, detail=3.0, rough=0.6)
     cells = g.voronoi(g.coord('Object'), 4.0)
     relief = g.math('ADD', pores.outputs['Fac'], g.math('MULTIPLY', cells.outputs['Distance'], 0.6))
-    # a flattened grain lies at its own angle: its normal tipped up to ~14 degrees (on top of the instance's tilt)
-    tip = g.node('ShaderNodeCombineXYZ', {'X': g.math('MULTIPLY', g.math('SUBTRACT', hashed(3.31), 0.5), 0.5),
-                                          'Y': g.math('MULTIPLY', g.math('SUBTRACT', hashed(4.77), 0.5), 0.5)}).outputs[0]
+    # a flattened grain lies at its own angle: its normal tipped up to ~19 degrees (on top of the instance's tilt)
+    tip = g.node('ShaderNodeCombineXYZ', {'X': g.math('MULTIPLY', g.math('SUBTRACT', hashed(3.31), 0.5), 0.7),
+                                          'Y': g.math('MULTIPLY', g.math('SUBTRACT', hashed(4.77), 0.5), 0.7)}).outputs[0]
     geo_n = g.node('ShaderNodeNewGeometry').outputs['Normal']
     tipped = g.node('ShaderNodeVectorMath', {0: geo_n, 1: g.node('ShaderNodeVectorMath', {0: tip, 'Scale': tamp}, operation='SCALE').outputs[0]},
                     operation='ADD').outputs[0]
     tipped = g.node('ShaderNodeVectorMath', {0: tipped}, operation='NORMALIZE').outputs[0]
     spec_tint = g.mix_rgb(cls_oily, (1.0, 1.0, 1.0), (0.9, 0.72, 0.52))
-    spec = g.map_range(tamp, 0, 1, 0.32, 0.26)
-    if kind != 'clump':
+    spec = g.map_range(tamp, 0, 1, 0.32, 0.18)
+    if kind == 'clump':
+        spec = 0.22                                   # a velvet of fines: matte, no sheen
+    else:
         spec = g.math('SUBTRACT', spec, g.math('MULTIPLY', cls_oily, 0.08))
     g.p(Base_Color=col, Roughness=rough, IOR=1.5, Specular_IOR_Level=spec, Specular_Tint=spec_tint,
         Normal=g.bump(relief, 0.35, 0.05, normal=tipped),
@@ -423,8 +438,9 @@ SKIN_SEED = 41
 SKIN_Z = (-2.42, 1.52)        # heights the heap's surface sweeps through, from under the floor to over the apex
 SKIN_Q = 4.0                  # r sqrt(1 + g^2) / g up to which the surface is fully populated (95 % of the heap is below 3.8)
 CHIP_SIGMA = 2600.0           # grains per cm^2 of loose heap surface (~2 layers: the bed shows only in the gaps)
-CLUMP_SIGMA = 100.0           # clumps per cm^2: with the grains they cover ~2/3 of a fresh single dose's surface
-PUCK_PITCH = 0.027            # cm: jittered grid of pressed grains over the puck (~1370 per cm^2)
+CLUMP_SIGMA = 110.0           # clumps per cm^2: with the grains they cover ~2/3 of a fresh single dose's surface
+CLUMP_APEX = 2.0              # ... and this many times more on the upper slopes, within ~1 cm of the apex
+PUCK_PITCH = 0.025            # cm: jittered grid of pressed grains over the puck (~1600 per cm^2, overlapping)
 PUCK_RING = 2.7               # cm: outside this radius the puck's edge stays looser (the base's edge radius and the gap)
 PUCK_R = float(DS.wall_r(DS.PUCK)) - 0.008
 
@@ -469,12 +485,14 @@ def _grain_population(rng):
     d[tail] = rng.uniform(0.07, 0.11, int(tail.sum()))
     pop.update(chip_th=rng.uniform(-np.pi, np.pi, n), chip_z=rng.uniform(*SKIN_Z, n), chip_u=rng.random(n), chip_d=d,
                chip_shape=rng.integers(0, N_CHIPS, n), chip_R=_random_rotations(rng, n), chip_e=rng.uniform(-0.2, 0.3, n))
-    n = int(CLUMP_SIGMA * SKIN_Q * 2 * np.pi * zs)
+    n = int(CLUMP_SIGMA * CLUMP_APEX * SKIN_Q * 2 * np.pi * zs)
     a, d0, d1 = 2.2, 0.05, 0.22
     D = d0 * (1 - rng.random(n) * (1 - (d0 / d1) ** a)) ** (-1 / a)
     pop.update(clump_th=rng.uniform(-np.pi, np.pi, n), clump_z=rng.uniform(*SKIN_Z, n), clump_u=rng.random(n), clump_d=D,
                clump_shape=N_CHIPS + rng.integers(0, N_CLUMPS, n), clump_R=_lying(rng, n, 0.45), clump_e=rng.uniform(-0.04, 0.1, n))
     # the puck: pressed grains on a jittered grid, flat side up; a looser edge; grains left on the wall above it
+    # (its own random stream, so the heap's populations can change without reshuffling it)
+    rng = np.random.default_rng([SKIN_SEED, 1])
     g = np.arange(-PUCK_R, PUCK_R + PUCK_PITCH, PUCK_PITCH)
     GX, GY = np.meshgrid(g, g)
     x = GX.ravel() + rng.uniform(-0.5, 0.5, GX.size) * PUCK_PITCH
@@ -564,14 +582,14 @@ def _grain_layers(scene, pl, cfg, data):
     for _ in range(40):                               # the tamper face reaches the top of the heap
         mid = 0.5 * (lo + hi)
         lo, hi = (mid, hi) if cfg['tamper'](mid) > top + 0.03 else (lo, mid)
-    t_touch, t_swap = hi, tm['tamp'] - 0.4 / C.FPS
+    t_touch, t_swap = hi, tm['swap']
     layers = []
     for key, name in (('chip', 'dose_heap_chips'), ('clump', 'dose_heap_clumps')):
         me = scene.objects[name].data
         me.attributes['shape'].data.foreach_set('value', pop[key + '_shape'].astype(np.int32))
         me.attributes['tamp'].data.foreach_set('value', np.zeros(len(me.vertices), np.float32))
         layers.append(dict(me=me, key=key, th=pop[key + '_th'], z=pop[key + '_z'], u=pop[key + '_u'], d=pop[key + '_d'],
-                           R=pop[key + '_R'], e=pop[key + '_e'], frozen=None))
+                           R=pop[key + '_R'], e=pop[key + '_e'], frozen=None, boost=CLUMP_APEX if key == 'clump' else 1.0))
     sample = lambda F, x, y: DS.sample_grid(F, pl.X[0], pl.dx, x, y)
 
     def heap(L, t, H, gx, gy, zb):
@@ -579,21 +597,19 @@ def _grain_layers(scene, pl, cfg, data):
         if t >= t_swap:
             return np.zeros(n), np.zeros(16 * n, np.float32), np.zeros((n, 3))
         if t < t_touch:
-            x, y, r, depth, born = skin.place(H, L['th'], L['z'])
+            x, y, r, depth, born, area = skin.place(H, L['th'], L['z'], stretch=True)
         else:                                         # under the tamper: the grains stay put and ride the pressed bed
             if L['frozen'] is None:
-                L['frozen'] = skin.place(pl.field(t_touch), L['th'], L['z'])
-            x, y, r, depth, born = L['frozen']
-            depth = np.zeros(n)
-            if L.get('frozen_g') is None:
-                Ht = pl.field(t_touch)
-                gyt, gxt = np.gradient(Ht, pl.dx)
-                L['frozen_g'] = np.hypot(sample(gxt, x, y), sample(gyt, x, y))
+                L['frozen'] = skin.place(pl.field(t_touch), L['th'], L['z'], stretch=True)
+            x, y, r, depth, born, area = L['frozen']
         hs = sample(H, x, y)
         sx, sy = sample(gx, x, y), sample(gy, x, y)
-        g = np.hypot(sx, sy) if t < t_touch else L['frozen_g']
         d = L['d']
-        p = r * np.sqrt(1 + g * g) / (np.maximum(g, 0.25) * SKIN_Q)
+        # shown while u < p: p is the surface area the grain's share of (bearing, height) covers, in units of SKIN_Q;
+        # clumps are commoner near the apex, where the stream drops them and they perch (CLUMP_APEX x within ~1 cm)
+        p = area / SKIN_Q
+        if L['boost'] > 1.0:
+            p = p * (1 + (L['boost'] - 1) * (1 - DS.smoothstep(0.6, 1.4, r))) / L['boost']
         vis = born * np.clip((p - L['u']) / 0.12, 0.0, 1.0) * (1 - DS.smoothstep(0.3 * d, 0.9 * d, depth))
         z = hs - depth + L['e'] * d - (1 - vis) * 0.6 * d
         # the tamper face: grains under it are pressed flat and spread a little before the puck replaces them
@@ -636,15 +652,18 @@ def _grain_layers(scene, pl, cfg, data):
     return update
 
 
-def _points(col, name, n, shapes, material):
+def _points(col, name, n, shapes, material, squash=False):
+    """Sim particles as instanced grains; squash: they can be pressed flat (the 'squash' attribute, see attach)."""
     me = bpy.data.meshes.new(name)
     me.vertices.add(n)
     me.attributes.new('size', 'FLOAT', 'POINT')
     me.attributes.new('pid', 'INT', 'POINT')
     me.attributes['pid'].data.foreach_set('value', np.arange(n, dtype=np.int32))
+    if squash:
+        me.attributes.new('squash', 'FLOAT', 'POINT')
     ob = C.obj_new(name, me, col)
     mod = ob.modifiers.new('grains', 'NODES')
-    mod.node_group = gn.grain_instancer(f'{name}_instancer', shapes, material)
+    mod.node_group = (gn.squash_instancer if squash else gn.grain_instancer)(f'{name}_instancer', shapes, material)
     return ob
 
 
@@ -891,6 +910,24 @@ class Player:
         return (F[iy, ix] * (1 - wx) + F[iy, ix + 1] * wx) * (1 - wy) + (F[iy + 1, ix] * (1 - wx) + F[iy + 1, ix + 1] * wx) * wy
 
 
+def _crush_landed(pos, size, heavy, H, zb, swapped, pl):
+    """Sim grains and clumps (indices `heavy`) lying in the basket: under the tamper face they are pressed down and flat
+    over its last 0.8 mm (returns the squash 0..1 per heavy particle, edits pos in place), and once the pressed puck
+    has taken over they are gone (size 0); the few spilled on the rim stay."""
+    p = pos[heavy]
+    r = np.hypot(p[:, 0], p[:, 1])
+    inb = r < 2.98
+    k = np.zeros(len(heavy))
+    if swapped:
+        size[heavy[inb]] = 0.0
+        return k
+    d = 2.0 * pl.size[heavy]
+    under = inb & (r < DS.TAMPER_R)
+    k = np.where(under, DS.smoothstep(0.08, 0.0, zb - pl.sample(H, p[:, 0], p[:, 1])), 0.0)
+    pos[heavy, 2] = np.where(under, np.minimum(p[:, 2], zb - 0.25 * d * (1 - 0.7 * k)), p[:, 2])
+    return k
+
+
 def attach(scene):
     data = dict(np.load(C.CACHE / CACHE_FILE))
     pl = Player(data)
@@ -906,6 +943,8 @@ def attach(scene):
     bed.loops.foreach_get('vertex_index', loops)
     apex0 = float(data['apex'][:, 2].max())
     grains = _grain_layers(scene, pl, cfg, data)
+    heavy = np.nonzero(data['kind'] <= DS.CLUMP)[0]
+    squashed = [(me, np.searchsorted(heavy, idx)) for me, idx in clouds if 'squash' in me.attributes]
 
     def update(t):
         # bed: where it meets the wall, the vertices on the field, bare parts tucked under the steel
@@ -925,8 +964,12 @@ def attach(scene):
         bed.attributes['tamped'].data.foreach_set('value', tamped.astype(np.float32))
         bed.update()
         grains(t, H)
-        # grains in flight and on the heap
+        # grains in flight and on the heap; the ones on the bed are pressed flat as the tamper face reaches them (like the
+        # heap's own grains, _grain_layers) and give way to the pressed puck with them
         pos, size = pl.particles(t)
+        k = _crush_landed(pos, size, heavy, H, zb, t >= tm['swap'], pl)
+        for me, j in squashed:
+            me.attributes['squash'].data.foreach_set('value', k[j].astype(np.float32))
         for me, idx in clouds + [(puff, pi)]:
             me.vertices.foreach_set('co', pos[idx].astype(np.float32).ravel())
             me.attributes['size'].data.foreach_set('value', size[idx].astype(np.float32))

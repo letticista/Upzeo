@@ -119,3 +119,31 @@ def _named(N, kind, name):
     nd.data_type = kind
     nd.inputs['Name'].default_value = name
     return nd
+
+
+def squash_instancer(name, shapes_collection, material):
+    """grain_instancer, then each instance flattened about its own position in object space by a 'squash' (FLOAT)
+    point attribute k: widened by 1 + 0.35 k across, pressed to 1 - 0.7 k in z (grains crushed under a tamper face)."""
+    ng = grain_instancer(name, shapes_collection, material)
+    N = ng.nodes.new
+    L = ng.links.new
+    inst = next(n for n in ng.nodes if n.bl_idname == 'GeometryNodeInstanceOnPoints')
+    setm = next(n for n in ng.nodes if n.bl_idname == 'GeometryNodeSetMaterial')
+    k = _out_named(_named(N, 'FLOAT', 'squash'), 'Attribute', 'VALUE')
+    wide, flat = N('ShaderNodeMath'), N('ShaderNodeMath')
+    wide.operation = flat.operation = 'MULTIPLY_ADD'
+    L(k, wide.inputs[0])
+    wide.inputs[1].default_value, wide.inputs[2].default_value = 0.35, 1.0
+    L(k, flat.inputs[0])
+    flat.inputs[1].default_value, flat.inputs[2].default_value = -0.7, 1.0
+    xyz = N('ShaderNodeCombineXYZ')
+    L(wide.outputs[0], xyz.inputs['X'])
+    L(wide.outputs[0], xyz.inputs['Y'])
+    L(flat.outputs[0], xyz.inputs['Z'])
+    sc = N('GeometryNodeScaleInstances')
+    sc.inputs['Local Space'].default_value = False
+    L(inst.outputs[0], sc.inputs['Instances'])
+    L(xyz.outputs[0], sc.inputs['Scale'])
+    L(N('GeometryNodeInputPosition').outputs[0], sc.inputs['Center'])
+    L(sc.outputs[0], setm.inputs['Geometry'])
+    return ng
