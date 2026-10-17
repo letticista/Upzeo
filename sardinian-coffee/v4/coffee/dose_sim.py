@@ -300,7 +300,7 @@ class Dose:
               self._births(nf, flow), np.zeros(npf)]
         kind = np.concatenate([np.full(n, k, np.int8) for k, n in enumerate((ng, nc, nf, npf))])
         # diameters (cm): coarse mode log-normal around 0.30 mm; clumps 0.5-2 mm, small ones commoner; fines
-        # agglomerates 60-120 um (single 30-40 um fines are below a pixel even at 4K)
+        # agglomerates 60-120 um (single 30-40 um fines are well below a pixel)
         dg = np.clip(0.030 * np.exp(0.18 * rng.standard_normal(ng)), 0.02, 0.045)
         dc = 0.05 * 4.0 ** (rng.random(nc) ** 1.7)
         df = 0.006 + 0.006 * rng.random(nf)

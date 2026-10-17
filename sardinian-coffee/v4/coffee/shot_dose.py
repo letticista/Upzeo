@@ -29,7 +29,7 @@ Physics (numpy, coffee/dose_sim.py, 16 sub-steps per frame, all forces in real s
   of 0.65 g/cm^3 particles). The 1.2 mm gap between the 56 mm chrome base and the wall keeps a 0.6 mm ridge.
   Air pushed out through that gap as the base enters the basket blows a small puff of fines over the rim (gap jet
   ~0.6 m/s, decaying in 15 ms; fines relax to the air in 4 ms and settle at 4 cm/s).
-Grains, not powder (at 4K a pixel is ~0.022 mm here: a 0.25 mm grain is ~11 px, a 1.5 mm clump ~70 px):
+Grains, not powder (at 1080x1920 a pixel is ~0.045 mm here: a 0.25 mm grain is ~6 px, a 1.5 mm clump ~35 px):
 - the heap's surface is real-size instanced geometry over the height field: ~2600 angular fracture chips per cm^2
   (0.09-0.7 mm, median 0.24 mm) and ~100 fluffy clumps per cm^2 (0.5-2.2 mm, N(>D) ~ D^-2.2), half embedded, so the
   crumb relief and the shadows between grains make the texture (dose_sim.Skin explains where each grain is at any

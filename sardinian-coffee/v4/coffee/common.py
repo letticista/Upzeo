@@ -22,7 +22,7 @@ PREVIEW = V4 / 'preview'
 
 FPS = int(os.environ.get('COFFEE_FPS', '60'))
 DUR = 12.0
-WIDTH, HEIGHT = 2160, 3840             # 4K UHD, vertical
+WIDTH, HEIGHT = 1080, 1920             # Full HD, vertical
 GRAVITY = 981.0                        # cm/s^2
 
 # edit points (seconds)
